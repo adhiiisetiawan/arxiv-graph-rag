@@ -1,0 +1,2453 @@
+Vision Language Transformers: A Survey
+Clayton Fields
+Boise State University
+1910 W University Dr
+Boise, ID 83725
+claytonfields@u.boisestate.eduCasey Kennington
+Boise State University
+1910 W University Dr
+Boise, ID 83725
+caseykennington@boisestate.edu
+Abstract
+Vision language tasks, such as answering ques-
+tions about or generating captions that describe
+an image, are difficult tasks for computers to
+perform. A relatively recent body of research
+has adapted the pretrained transformer archi-
+tecture introduced in Vaswani et al. (2017) to
+vision language modeling. Transformer mod-
+els have greatly improved performance and ver-
+satility over previous vision language models.
+They do so by pretraining models on a large
+generic datasets and transferring their learning
+to new tasks with minor changes in architec-
+ture and parameter values. This type of trans-
+fer learning has become the standard modeling
+practice in both natural language processing
+and computer vision. Vision language trans-
+formers offer the promise of producing similar
+advancements in tasks which require both vi-
+sion and language. In this paper, we provide
+a broad synthesis of the currently available re-
+search on vision language transformer models
+and offer some analysis of their strengths, limi-
+tations and some open questions that remain.
+1 Introduction
+Vision language modeling is the domain where
+computer vision and natural language processing
+intersect. An example of a VL task is visual ques-
+tion answering: given an image and a question
+about an image, a VL model must choose the cor-
+rect answer out of a number of choices. Another
+example, and a more challenging task, is image
+captioning, given an image a model must produce
+a sequence of text describing the picture. Though
+effortless for human beings, tasks of this nature
+have historically proven extremely challenging for
+computers to perform. Until fairly recently, deep
+learning models for VL tasks tended to be both
+conceptually convoluted and confined to a narrow
+range of uses.
+In the past few years a new class of models
+called VL transformers have greatly expanded theaccuracy and versatility of vision language models.
+These models are based on the celebrated trans-
+former architecture introduced in Vaswani et al.
+(2017). VL transformers improve on the previous
+paradigms by pretraining models on large datasets
+of image-text pairs before transferring them to
+other tasks, usually with minor changes to param-
+eter values and architecture. In a very short space
+of time a bewildering array of these models have
+appeared in the literature. They vary widely in their
+intended uses, architectures, pretraining processes
+as well as the data used to pretrain them.
+In this paper, we provide a comprehensive sur-
+vey of the various VL transformer models found
+in the literature. These models were designed for
+a wide range of vision language tasks. Models
+such as CLIP (Radford et al., 2021) and ALIGN
+(Jia et al., 2021) are particularly well suited to vi-
+sion language alignment tasks such image retrieval.
+Whereas models like UNITER (Chen et al., 2019),
+ViLBERT (Lu et al., 2019) and METER (Dou et al.,
+2022) specialize in understanding tasks such as vi-
+sual question answering (VQA) described in the
+introductory paragraph. Transformers with suit-
+able architectures, LEMON (Hu et al., 2022) and
+GIT (Wang et al., 2022a) to name two, were de-
+signed to generate text such as captions for image
+inputs. There is even a series of VL transformers
+specializing in visual grounding tasks in which a
+model must match words to the visual objects they
+describe. Referring Transformer and mDETR are
+two such models that can perform object detection
+on image inputs and match these objects to text
+descriptions.
+In the interest of brevity, we will restrict our
+study to models using English as their primary lan-
+guage. This excludes not only models for text in
+other languages, but also multi-lingual models. We
+also exclude models that are designed exclusively
+for video-language tasks. It should be noted how-
+ever that some of the models we reviewed processarXiv:2307.03254v1  [cs.CV]  6 Jul 2023video inputs as well as images. And one multi-
+lingual model, PaLI (Chen et al., 2022), is included
+because of its superior performance on english lan-
+guage VL benchmarks.
+The impressive range of tasks mentioned above
+is reflected by an equally impressive variety of em-
+bedding strategies, model architectures, pretraining
+tasks and training datasets. We will discuss these
+topics in some detail as well as the various ways
+these features can be adapted to the VL domain.
+Along the way we hope to provide some insight
+into the various design choices of these models
+and when sufficient data exists, the corresponding
+effects on their performance. All of the models
+reviewed for this paper are listed in Table 1 along
+with the references for the papers introducing each
+model and some basic information about there de-
+sign.
+The remainder of the paper is organized as fol-
+lows, in Section 2, we provide a brief explanation
+of the transformer model that forms the basis of
+the models that we have reviewed and how pre-
+trained trasformers have been adapted for NLP
+and CV tasks. In Section 3 we discuss how VL
+models embed visual and linguistic data into their
+feature space, with special attention paid to how
+they create visual features. Section 4 addresses the
+architectures of the reviewed models and how these
+design choices affect the interactions of visual and
+linguistic features. The various pretraining tasks
+and strategies these models use and how they affect
+downstream performance are summarized in Sec-
+tion 5. Section 6 describes the models downstream
+capabilities and Section 7 describes the data used
+for pretraining. In the final section we provide a
+brief analysis of the strengths and limitations of the
+models discussed and explore some future direc-
+tions for research and identify open questions that
+remain.
+2 Background: Transformers
+In this section, we describe the transformer-style
+deep neural models that form the architectural basis
+of the VL models we discuss below. Transformers
+were first introduced in the seminal paper "Atten-
+tion Is All You Need" by Vaswani et al. (2017) in
+the context of using attention mechanisms for ma-
+chine translation tasks. Since then, transformers
+have replaced recurrent neural networks (RNN) as
+the standard model for most NLP tasks. NLP trans-
+formers have achieved their remarkable results bypretraining networks with large unlabelled sets of
+text and then transferring the pretrained networks
+to other tasks with small changes in architecture
+and minimal parameter updates. Pretrained trans-
+former models, such as RoBERTa (Liu et al., 2019)
+and GPT-3 (Brown et al., 2020), are now state-of-
+the-art in virtually every category of NLP tasks.
+Convolutional neural networks (CNN) are still
+widely used for CV tasks as of the writing of this
+paper. However, recent efforts have shown that
+the transformer architecture can be adapted to CV
+tasks with relatively few modifications, (Dosovit-
+skiy et al., 2020; Touvron et al., 2021). When
+pretrained with a sufficiently large dataset, vision
+transformers can perform competitively with state-
+of-the-art CNNs whose architectures were designed
+for CV .
+Given their ability to perform at or near state-of-
+the-art in both domains, transformers have became
+the natural choice as the basis for pretrained VL
+models. Before we move on to discussing the de-
+sign choices involved in adapting transformers to
+VL tasks, we will offer a brief overview of the
+transformer model and the attention mechanism
+that powers its remarkable results. Readers well
+versed in the working of transformers and their ap-
+plications NLP and CV should feel free to proceed
+to the next section.
+2.1 Architecture of Transformers
+In this subsection we describe the architecture of
+the original transformer model. Of particular inter-
+est is the self-attention mechanism that underlies
+the model’s success in sequence processing. Un-
+less otherwise stated, the source for the exposition
+in this subsection is Vaswani et al. (2017).
+2.1.1 Encoder and Decoder Stacks
+The first implementation of the transformer models
+was based on an encoder-decoder design. Formally,
+a given input sequence of symbol representations
+x= (x1, ..., x n)is mapped to an intermediate rep-
+resentation z= (z1, ..., z n)by the encoder module.
+Withzas input, the decoder generates an output
+sequence y= (y1, ..., y n).
+The transformer encoder stack consists of N
+transformer layers of identical dimension. Each
+transformer layer, in turn, consists of a multi-head
+attention (MHA) sub-layer and a feed-forward net-
+work sub-layer (FFN), both of which are described
+in the following sub-sections. A residual connec-
+tion (He et al., 2015) around each sub-layer is thenModel Source Paper Architecture Visual Embedding
+ALBEF Li et al. (2021) Combo. Encoder Patch Embeddings
+ALIGN Jia et al. (2021) Dual Encoder Grid Features
+BEiT-3 Wang et al. (2023c) Combo. Encoder Patch Embeddings
+BLIP-2 Li et al. (2023) Encoder-Decoder Patch Embeddings
+BridgeTower Xu et al. (2022) Two-Tower Encoder Patch Embeddings
+CLIP Radford et al. (2021) Dual Encoder Grid Features
+CoCa Yu et al. (2022) Encoder-Decoder Patch Embeddings
+DaVinci Diao et al. (2022) Encoder-Decoder Patch Embeddings
+DQ-DETR Liu et al. (2022a) Encoder-Decoder Grid Features
+E2E-VLP Xu et al. (2021) Encoder-Decoder Grid Features
+Flamingo Alayrac et al. (2022) Encoder-Decoder Grid Features
+FLA V A Singh et al. (2022) Combo. Encoder Patch Embeddings
+Florence Yuan et al. (2021) Dual Encoder Grid Features
+GIT Wang et al. (2022a) Encoder-Decoder Grid Features
+GPV Gupta et al. (2021) Encoder-Decoder Grid Features
+KD-VLP Liu et al. (2022b) One-Tower Encoder Grid Features
+LEMON Hu et al. (2022) Encoder-Decoder Region Features
+Lit Zhai et al. (2022) Dual Encoder Grid Features
+LXMERT Tan and Bansal (2019) Two-Tower Encoder Region Features
+mDETR Kamath et al. (2021) Encoder-Decoder Grid Features
+METER Dou et al. (2022) Two-Tower Encoder Patch Embeddings
+mPLUG Li et al. (2022a) Encoder-Decoder Patch Embeddings
+OFA Wang et al. (2022c) Encoder-Decoder Patch Embeddings
+OmniVL Wang et al. (2022b) Encoder-Decoder Patch Embeddings
+Oscar Li et al. (2020c) One-Tower Encoder Region Features
+PaLI Chen et al. (2022) Encoder-Decoder Patch Embeddings
+PixelBERT Huang et al. (2020) One-Tower Encoder Grid Features
+Referring Transformer Li and Sigal (2021) Encoder-Decoder Grid Features
+SimVLM Wang et al. (2021) Encoder-Decoder Patch Embeddings
+SOHO Huang et al. (2021a) One-Tower Encoder Grid Features
+Unicoder-VL Li et al. (2020a) One-Tower Encoder Region Features
+UNIMO Li et al. (2020b) One-Tower Encoder Region Features
+UniTAB Yang et al. (2022b) Encoder-Decoder Grid Features
+UNITER Chen et al. (2019) One-Tower Encoder Region Features
+ViLBERT Lu et al. (2019) Two-Tower Encoder Region Features
+VILLA Gan et al. (2020) One-Tower Encoder Region Features
+ViLT Kim et al. (2021) One-Tower Encoder Patch Embeddings
+VinVL Zhang et al. (2021) One-Tower Encoder Region Features
+VisualBERT Li et al. (2019) One-Tower Encoder Region Features
+VL-BERT Su et al. (2019) One-Tower Encoder Region Features
+VLMo Bao et al. (2022) Combo. Encoder Patch Embeddings
+VL-T5 Cho et al. (2021) Encoder-Decoder Region Features
+X2-VLM Zeng et al. (2022) Combo. Encoder Patch Embeddings
+Table 1: List of the models reviewed for this paper, the source paper that introduced the model and the architecture
+and visual embedding strategy it uses.Figure 1: The transformer model architecture. From
+Vaswani et al. (2017)
+followed by a layer normalization. Formally this
+amounts to LayerNorm( x+ Sublayer( x)), where
+Sublayer( x) is the MHA or FFN sublayer function
+itself.
+The decoder is also a stack of Nlayers of iden-
+tical dimension. However, layers in the decoder
+stack contain a third multi-head attention sub-layer
+that attends to the output of the encoder stack. The
+self-attention mechanism in the decoder stack is
+also modified so that previous positions in the se-
+quence are masked. Masking combined with an
+offset applied to the output embeddings ensure that
+decoder predictions are based only on previous out-
+puts. These modifications make the decoder well
+suited to generative tasks. In the next subsection
+we describe the multi-head attention mechanism
+key to the transformer’s operation.
+2.1.2 Multi-Head Attention Sub-Layer
+Broadly speaking, an attention mechanism is a
+function that maps a query vector and a set of
+key-value vector pairs to an output. The output
+is then computed as a weighted sum of the values.Vaswani et al. (2017) call the attention mechanism
+they developed “scaled dot-product attention". The
+input consists of query and key vectors of dimen-
+siondkand value vectors of dimension dv. The
+weights for the values are obtained by applying
+a softmax to the dot product of the query with
+all keys divided by√dk. In practice, the compo-
+nent vectors of the attention function are packed
+together into matrices Q,KandVand computed
+simultaneously as:
+Attention( Q, K, V ) = softmax(QKT
+dk)V
+One of the key innovations of the transformer
+model, is that rather than performing a single at-
+tention function with input vectors of size dmodel
+(the dimension of the model’s hidden size), the
+query, key and value vectors are linearly projected
+htimes with different, learned linear projections to
+their respective dimensions of dk,dkanddv. The
+above attention function is then performed over
+each set of inputs yielding hdifferent dvvalue vec-
+tors. Finally, these are concatenated into a single
+value vector of dimension dmodel . The creators
+of the transformer posit that the parallel represen-
+tations allow the model to attend to information
+from different representation subspaces at differ-
+ent positions. Formally, the multi-head attention
+mechanism can be described as:
+MHA( Q, K, V ) = Concat(head 1, ...,head j)WO
+where
+head i= Attention( QWQ
+i, KWK
+i, V WV
+i)
+and the projections are learned parameter matrices
+are:
+WQ
+i∈Rdmodel×dk
+WK
+i∈Rdmodel×dk
+WV
+i∈Rdmodel×dv
+WO
+i∈Rhdv×dmodel
+The output of the MHA sub-layer is then passed
+to the FFN sub-layer described in the next section.Figure 2: Diagram of the GPT model. From Radford
+et al. (2018)
+2.1.3 Feed-Forward Network Sub-Layer
+Each layer of the transformer contains a fully con-
+nected feed forward network (FFN) sub-layer. The
+shallow network consists of two linear transforma-
+tions around a ReLU activation. Formally, this is
+expressed as:
+FFN( x) = max(0 , xW 1+b1)W2+b2
+W1projects the input from the model’s hidden
+sizedmodel to an intermediate size dffandW2
+projects the transformed input back to dmodel .b1
+andb2are bias terms. The dimensions of each
+network are identical, however the parameters of
+the learned projection matrices W1andW2dif-
+fer from layer to layer. The original transformer
+hadN= 6layers with dimensions dmodel = 512
+anddff= 4∗dmodel = 2048 . Because the atten-
+tion mechanism has no inherent order, the original
+transformer and most subsequent models add a po-
+sitional encoding to the input embeddings so the
+model can make use of the sequence information.
+2.2 Pretrained Transformers for Natural
+Language Processing
+After their introduction in Vaswani et al. (2017),
+transformer models were quickly adapted to the
+task of transfer learning for NLP tasks. The GPT
+(Generative Pretrained Transformer) set new state-
+of-the-art performance on a variety of tasks uponits introduction by Radford et al. (2018). The
+GPT model consists of a large stack of transformer
+decoder blocks. The model is pretrained on the
+BooksCorpus dataset (Zhu et al., 2015), a large,
+unlabelled corpus of text using a standard language
+modeling objective. That is, given an unsupervised
+corpus of tokens U={u1, ..., u n}the model max-
+imizes the likelihood L=P(ui|ui−k, ..., u i−1; Θ)
+where kis the context size and Θare the network
+parameters. Less formally, the model must predict
+the next token, given the kprevious tokens. After
+pretraining for 100 epochs, the model can be trans-
+ferred to a supervised NLP task by replacing the
+output layer of the network and training for a few
+epochs. This process is known as fine-tuning.
+Shortly after GPT, BERT (Bidirectional Encoder
+Representations from Transformers) was intro-
+duced in Devlin et al. (2018), and is now the most
+widely used NLP model available. In contrast to the
+generative GPT model, BERT consists of a stack
+of transformer encoder blocks. Crucially, BERT
+was the first transformer model pretrained with the
+masked language modeling objective (MLM). In
+MLM, the model is presented with a sequence of
+text tokens, some percentage of which are replaced
+with a special "[MASK]" token, and must predict
+the masked tokens given the unmasked tokens. Un-
+like the standard language objective, the prediction
+is conditioned on words that come before and after
+the token being predicted. After pretraining the
+model can then be fine-tuned to downstream tasks
+with minimal changes to the model parameters and
+architecture.
+Pretrained transformers have mostly displaced
+recurrent neural networks as the standard for NLP
+tasks. Though the pretraining tasks and domain
+are often quite different than the down stream tasks
+they are applied to, they generally outperform task
+specific deep models. The GPT model is now in its
+fourth iteration, GPT-4 (OpenAI, 2023). By aug-
+menting traditional language modeling with rein-
+forcement learning, it is capable of reliably produc-
+ing human quality text on demand. The functional-
+ity and performance of BERT have been extended
+by a variety of models (Liu et al., 2019; Lan et al.,
+2019), and compressed to improve inference time
+(Sanh et al., 2019). Inspired by the extraordinary
+success of using transformers for NLP, researchers
+have recently begun to adapt transformers to the
+CV domain. We will close this section by describ-
+ing some of these efforts.Figure 3: Diagram of ViT (VisionTranformer) for com-
+puter vision tasks. From Dosovitskiy et al. (2020)
+2.3 Pretrained Transformers for Computer
+Vision
+The ViT (Vision Transformer) model was intro-
+duced in Dosovitskiy et al. (2020). As the name
+suggests, it is a transformer based model and its
+creators closely follow the design and dimensions
+of the BERT model. In place of textual tokens,
+features are created by breaking an image into a se-
+quence of P×Ppatches, where Pis the patch size,
+flattening the 2-D image patches and then linearly
+projecting them to match the transformer’s embed-
+ding size. It is pretrained using supervised image
+classification on a labelled dataset. The model’s
+creators show that ViT can match or exceed state-
+of-the-art CNN-based networks on common down-
+stream image classification benchmarks when it is
+provided with sufficient data. One notable draw-
+back of ViT is that it requires more pretraining data
+to achieve said results than CNN-based networks.
+The model’s creators surmise that this is because
+transformers lack the image-friendly inductive bi-
+ases of CNNs, such as locality, two-dimensional
+neighborhood structure and translation equivari-
+ance.
+One possible solution to the problems posed by
+the large pretraining data requirements of ViT was
+proposed in the BEIT model (Bao et al., 2021).
+BEIT adopts a similar architecture and embedding
+strategy as ViT, but introduces a novel pretraining
+task, masked image modeling. The masked im-
+age modeling task is much likes BERT’s masked
+language modeling objective. Image patch repre-
+sentations are first "tokenized" to a discrete repre-
+sentation using an auto-encoder. The designated,
+abstract category of the masked image patch is then
+predicted by the model. The creators show that it
+can perform on par with ViT using substantiallyless pretraining data. Notably, the masked image
+modeling task is very similar to the masked region
+modeling objective used by some VL transformer
+models that is described in Section 5.
+Other approaches to improving the transformer’s
+performance in vision tasks take their inspiration
+from convolutional neural networks. CoAtNet (Dai
+et al., 2021) employs depthwise convolution layers
+that combine the data inductive biases of CNNs
+with the model capacity of transformers. Swin (Liu
+et al., 2021) and CSwin (Dong et al., 2021) are
+transformer based vision models known as hier-
+archial transformers are another approach. These
+models perform self-attention over a shifting two
+dimensional segment of the input image. This
+mechanism creates a bias toward learning two di-
+mensional relationships and it allows hierarchical
+transformers to learn with less data than the vanilla
+vision transformer.
+In this section, we have covered sufficient back-
+ground to fully explore our main topic. The re-
+mainder of the paper will be devoted to describing
+pretrained transformer VL models, starting with
+the strategies they use to jointly embed visual and
+textual features.
+3 Embedding Strategies
+In this section we discuss how VL transformer mod-
+els encode their textual and visual embeddings into
+the model’s feature space. Formally, textual and
+visual input must be encoded into a sequence of tex-
+tual tokens {t1, ....t T}and a sequence of visual fea-
+tures{v1, ..., v V}where each sequence element is
+a numerical vector. Virtually all of the models that
+we reviewed for this paper adopt the same embed-
+ding strategy for textual representations, described
+in detail in the subsection immediately below. The
+strategy for representing images however, varies
+significantly and represents one of the key differ-
+ences in pretrained VL models and we will discuss
+the subject in detail in the following section.
+3.1 Textual Embeddings
+Most of the VL models we discuss use the tex-
+tual embedding strategy of BERT (Devlin et al.,
+2018). The input text is first tokenized using the
+WordPiece algorithm (Wu et al., 2016). Each se-
+quence begins with a special classification token
+"[CLS]" and sequences of text are separated using
+the special "[SEP]" token. Finally, learned embed-
+dings representing a token’s position within theFigure 4: Textual Embedding Scheme from BERT. Note that in VL transformers token embeddings are a mixture of
+visual and text tokens and segment embeddings will often denote whether a token is image or text. From Devlin
+et al. (2018)
+sequence and which segment of text it belongs to
+are added to produce the token’s input representa-
+tion. The process is summarized visually in Fig-
+ure 4. Some models such as CLIP (Radford et al.,
+2021), UNIMO (Li et al., 2020b), OFA (Wang et al.,
+2022c) and METER (Dou et al., 2022) to name a
+few, use the BPE encoding scheme (Sennrich et al.,
+2015) as opposed to WordPiece encoding. Other
+models, BEiT-3 (Wang et al., 2023c), VL-T5 (Cho
+et al., 2021) and Flamingo for example, make use
+of the SentencePiece encoding described in Kudo
+and Richardson (2018). The essential embedding
+strategies of these models however, are largely the
+same.
+3.2 Visual Embeddings
+3.2.1 Region Features
+Among the most common approach to creating
+visual embeddings for VL transformers has been
+to use region based features produced by an out
+of the box object detection network. Object de-
+tection networks segment images into rectangular
+regions containing discrete visual objects and as-
+sign each region with an appropriate label for the
+object it contains. Fast R-CNN (Girshick, 2015)
+and YOLO (Redmon et al., 2016) are popular ex-
+amples. UNITER (Chen et al., 2019), ViLBERT
+(Lu et al., 2019), VL-BERT (Su et al., 2019), Visu-
+alBERT (Li et al., 2019), Oscar (Li et al., 2020c),
+VinVL (Zhang et al., 2021), LXMERT (Tan and
+Bansal, 2019), VL-T5 (Cho et al., 2021), Unicoder-
+VL (Li et al., 2020a) and UNIMO all make use of
+region based features. Because the attention mecha-
+nism used by transformers is inherently unordered,
+an embedding representing position of the region
+within the image is usually included added to the
+feature embedding.
+As an illustrative example, consider the embed-
+dings of VL-BERT. VL-BERT extracts region fea-
+tures from image input using a Fast R-CNN objectdetector (Girshick, 2015). A visual feature embed-
+ding is taken as the last hidden state vector prior
+to the final output layer for each Region of Inter-
+est (RoI). Information regarding the position of
+the bounding box enclosing the region is embed-
+ded into a high dimensional space and included
+with each RoI feature. The concatenated visual
+feature embedding is then projected to the match-
+ing the dimension of the textual features and con-
+catenated with the VL transformer’s textual token
+embeddings. Tokens representing image regions
+are marked with a special "[IMG]" token, textual
+and other special tokens receive an RoI representa-
+tion of the entire image. Figure 3.1 gives a visual
+summary of the model’s embedding strategy.
+The general complexity of region features makes
+for significant variations in how different model
+create and use them. UNITER simply concate-
+nates the textual and visual features and separates
+them with a special "[SEP]" token. This allows
+it to dispense with the special "[IMG]" token that
+VL-BERT uses. ViLBERT and LXMERT create
+RoI features with CNN-based object detectors but
+keep textual and visual embeddings separate and
+use a cross-attention mechanism to allow them to
+interact. There are two notable drawbacks to us-
+ing region features. Firstly, they can only identify
+the objects that object-detection model used to cre-
+ate them was trained on. VL models using them,
+therefore, can only recognize and describe those
+same visual categories. Secondly, object detection
+networks used to generate region features are also
+computationally expensive, and creating region fea-
+tures represents a serious computational bottleneck
+for models that use them (Kim et al., 2021).
+3.2.2 Grid Features
+In place of region features, the encoder only mod-
+els Pixel-BERT (Huang et al., 2020), and SOHO
+(Huang et al., 2021b) and the encoder-decoder
+model E2E-VLP learn to align text with visual em-Figure 5: Visual embedding scheme using region features for VL-BERT. From Su et al. (2019)
+beddings extracted from the feature grid outputted
+by a CNN. The dual encoders CLIP, ALIGN (Jia
+et al., 2021) and LiT (Zhai et al., 2022) also use grid
+features. As well as the visually grounded trans-
+formers GPV-1 (Gupta et al., 2021), mDETR (Ka-
+math et al., 2021), DQ-DETR (Liu et al., 2022a),
+UniTAB (Yang et al., 2022b), Referring Trans-
+former (Li and Sigal, 2021) and KD-VLP (Liu
+et al., 2022b). We consider the formal expres-
+sion of the process for creating the grid features
+used by E2E-VLP. A raw image input is fed into
+a CNN encoder. Given an image Iwith 3 color
+channels and height H0and width W0such that
+I∈R3×H0×W0the CNN encoder will output a
+feature map f∈RC×H×W. The E2E-VLP model
+uses the same dimensions as DETR (Carion et al.,
+2020) with embedding dimension C= 2048 and
+spatial dimensions H=H0
+32andW=W0
+32. To
+reduce the embedding dimension a 1×1convo-
+lution is applied to reduce C to a smaller dimen-
+siondsuch that we obtain a lower resolution map
+z∈Rd×H×W. Finally, in order to produce a se-
+quence of tokens, the feature map is flattened to a
+sequence of H·Wvectors of dimension d. The
+essential strategy of models using grid features is
+essentially the same in most important respects.
+This approach to visual embedding removes the
+theoretical ceiling imposed by the object categories
+of region features. It also provides a dense set of
+features for fine-grained visual reasoning. How-
+ever, this approach still relies on an a pretrained
+CNN as its visual encoder creating a two step train-
+ing and inference process. And although the cre-
+ation of grid features uses less compute than an
+object detection models, image processing still ac-
+counts for most of a model like PixelBERT’s infer-ence time (Kim et al., 2021). We close this section
+with the following section that describes a strategy
+called patch embedding that directly addresses the
+problem of reducing compute requirements for im-
+age preprocessing and obviates the need for CNN-
+based visual encoder.
+3.2.3 Patch Embeddings
+The final approach we discuss, patch embedding,
+was introduced by the Vision Transformer (ViT)
+(Dosovitskiy et al., 2020) and was first adapted for
+use in VL tasks by the ViLT mdoel introduced
+in Kim et al. (2021). Since its introduction in
+ViLT, it has been a popular choice and is used by
+VLMo (Bao et al., 2022), ALBEF (Li et al., 2021),
+BEiT-3, BLIP-2 (Li et al., 2023), CoCa (Yu et al.,
+2022), SimVLM (Wang et al., 2021), OFA (Wang
+et al., 2022c), METER (Dou et al., 2022), mPLUG
+(Li et al., 2022a), BridgeTower (Xu et al., 2022),
+DaVinci (Diao et al., 2022), Florence (Yuan et al.,
+2021) and FLA V A (Singh et al., 2022) models.
+Formally, a given image I∈R3×H×Wis sliced
+intoN=HW/P2patches and flattened into
+p∈RN×(P2·C)where (P, P)is the patch reso-
+lution. A learned linear projection is then used to
+project each feature to the embedding dimension.
+The image embedding is obtained by summing the
+patch projection with learned position and type em-
+beddings. Finally, the input features are formed
+by concatenating textual and visual embeddings
+for input into the transformer. Using a patch size
+ofP= 32 , the ViLT model uses only a of frac-
+tion of the compute for image processing than the
+models previously discussed. Figure 6 shows an il-
+lustration of the patch embedding process for ViLT
+provided by Kim et al. (2021).Most of the models use ViT (Dosovitskiy et al.,
+2020) to process images into patch features. As
+a result, they follow a similar approach to patch
+embedding. Three notable exceptions are OmniVL,
+OFA and SimVLM, which use a CNN architecture
+to extract image patches. The authors argue that
+these patch embedding are superior to those ob-
+tained from the simple linear projection used by
+ViT.
+4 Model Architecture
+Independent of the embedding strategy employed,
+the model architecture of VL models must allow
+features associated with the textual and vision
+modalities to interact in some fashion. In this sec-
+tion we describe the different model designs used
+by pretrained VL transformers to jointly represent
+vision and language. In the broadest sense, pre-
+trained VL models can be classified by whether
+this interaction is achieved through a shallow in-
+teraction, such as a dot product, or whether in-
+teraction occurs within the deep learning model
+itself. Among models using a deep interaction, ar-
+chitectures employ either a single-tower encoder, a
+dual-tower encoder or an encoder-decoder design.
+Following Bao et al. (2022), we refer to models
+using shallow interaction as dual encoders. These
+architectures are described in the subsection imme-
+diately below with notable examples from available
+VL models.
+4.1 Dual Encoders
+Dual encoders model visual and textual represen-
+tations separately and the modalities do not inter-
+act within the deep learning model. Instead, the
+output of the visual and textual modules interact
+through a simple mechanism, usually a cosine sim-
+ilarity. Notable examples of dual encoder models
+are the CLIP model from OpenAI and ALIGN from
+Google Research, Florence and LiT.
+Consider the CLIP model, here text is encoded
+using a 12 layer transformer with BPE encoding
+(Sennrich et al., 2015). Images are encoded with
+either a ResNet50 (He et al., 2015) or Vision Trans-
+former (Dosovitskiy et al., 2020) architecture. The
+output embeddings of each model are then com-
+pared via cosine similarity, which for normalized
+features reduces to a vector dot product. The shal-
+low interaction scheme allows for a simple pretrain-
+ing process that scales well to very large datasets.
+Given a large number of (image, text pairs), train-ing minimizes cosine similarity between correct
+pairs and maximizes it between incorrect pairs,
+a process called contrastive learning which is de-
+scribed in detail in Section 5.4.
+The ALIGN model follows a strategy very sim-
+ilar to CLIP, using an EfficientNet module as an
+image encoder and BERT as a text encoder. Like
+CLIP the encoder modules interact via a contrastive
+loss on their outputs. Crucially, ALIGN massively
+scales up the data set used for training. Its cre-
+ators collected 1.8 billion image and alt-text pairs
+from the internet and performed only minimal post-
+processing steps in favor of scale. The large, and
+noisy, dataset allows ALIGN to surpass CLIP on
+several important benchmarks. Though much like
+CLIP and ALIGN in terms of architecture, LiT
+takes the novel approach of using a pretrained im-
+age encoder whose weights are locked during its
+contrastive training. The authors show through ab-
+lation studies that this approach has a variety of
+advantages and it performs better than CLIP and
+ALIGN several image retrieval benchmarks.
+The Florence model extends the dual encoder
+to a much greater variety of downstream tasks and
+capabilities. The base model consists of a text
+encoder transformer, RoBERTa (Liu et al., 2019)
+and a hierarchial vision transformer, CSwin (Dong
+et al., 2021) as the visual encoder trained with
+contrastive learning. Florence, however, can be
+equipped with a large number of task-specific heads
+that allow it perform a wider variety of tasks than
+the other dual encoder models, including inference
+on video tasks.
+Despite their relative simplicity, dual encoder
+models like CLIP achieve remarkable results on a
+variety of tasks (Radford et al., 2021), in particular
+on zero shot classification and retrieval tasks. The
+fast inference time of dual encoder models make
+them ideal for image retrieval tasks. However, the
+creators of CLIP and other researchers (Kim et al.,
+2021) have noted that CLIP performs poorly on
+complex VL classification tasks such as NLVR2
+(Suhr et al., 2018). The Florence model performs
+relatively well on the VQA task (Yuan et al., 2021)
+though well below state-of-the-art and it was not
+tested on a wide array of complex classification
+tasks. In order to attain state-of-the-art results on
+such tasks, a deeper interaction between modalities
+appears to be required. In the next two sections
+we explore deep interaction mechanisms that fare
+better on complex VL tasks.Figure 6: Patch Embedding Scheme from ViLT. From Kim et al. (2021)
+Figure 7: The single-tower fusion architecture used by Unicoder-VL. From Li et al. (2020a)4.2 Fusion Encoders
+4.2.1 Single-Tower Architecture
+Following Bugliarello et al. (2021), we classify
+fusion encoders into two categories, single-tower
+and dual-tower architectures. In a single-tower ar-
+chitecture, a single transformer encoder operates
+on a concatenation of visual and textual input rep-
+resentations. Since both the visual and textural
+tokens are embedded into a single input, the single
+transformer stack allows for unconstrained modal-
+ity interaction modeling. It also has the distinct
+advantage of requiring fewer parameters than the
+more complex two-tower architecture.
+Of the two encoder types, single stream architec-
+tures have been the most common approach thus
+far. ViLT, VL-BERT, UNITER, OSCAR, SOHO,
+UNIMO, PixelBERT, Unicoder-VL and Visual-
+BERT all use a single stream architectures. We
+will use Unicoder-VL as an illustrative example.
+The region features and textual input embeddings
+described in Section 3 are fed into a transformer
+encoder with the same dimensions as the BERT
+model (Devlin et al., 2018). The architecture is
+depicted in Figure 7
+Though single-tower models differ along other
+dimensions, embedding strategy, pretraining tasks
+and data used, etc., the essential architecture is
+much the same for all of single-tower models.
+Many of them, as their names suggest, are vari-
+ations on the BERT NLP model and some, such as
+VisualBERT and VL-BERT are initialized with the
+pretrained weights from BERT. A notable feature
+of the aforementioned ViLT, is that it is initialized
+with the pretrained weights from ViT (Dosovitskiy
+et al., 2020) instead of BERT.
+4.2.2 Two-Tower Architecture
+Rather than operating on a concatenation of visual
+and textual inputs, two-tower architectures encode
+each modality in separate transformer stacks. In-
+teraction is then achieved through a cross attention
+mechanism. ViLBERT, LXMERT, METER and
+BridgeTower are examples of dual-tower models.
+In ViLBERT, for example, separate image and text
+embeddings are passed into parallel sequences of
+BERT-style transformer blocks and co-attention
+transformer layers. Co-attention layers take inter-
+mediate visual and textual representations H(i)
+Vand
+H(i)
+Tand compute query, key and value matrices as
+in a standard transformer block. The keys and val-
+ues for each modality are then passed as input intothe other modality’s multi-headed attention block
+creating a multi-modal feature. The rest of the
+layer proceeds as in a traditional transformer block,
+resulting in a multi-modal feature. ViLBERT’s
+architecture is depicted in Figure 8 LXMERT’s ar-
+chitecture and general approach are quite similar to
+that of ViLBERT. One notable difference between
+the models is that while ViLBERT’s text module is
+intialized with the weights from BERT-base, all of
+LXMERT’s parameters are trained from scratch.
+METER, though broadly similar to LXMERT
+and ViLBERT, differs in a number of key ways.
+Firstly, it creators conducted a broad architecture
+analysis and attempted a number of different text
+and image encoders. Their default model, consisted
+of a pretrained RoBERTa text encoder and a pre-
+trained CLIP-ViI-224-32 (Radford et al., 2021) as
+the image encoder. These architectural innovations
+allow METER to outperform the previous models
+that made use of the patch embeddings mentioned
+in Section 3. The BridgeTower model is similar
+in most respects to METER, however it contains
+novel features that its creators call bridge connec-
+tions. Here representations from the top 6 layers
+of each unimodal encoder are connected to each
+of the layers in the multi-modal encoder prior to
+the cross-attention mechanism. This is done on the
+theory that since different layers of transformers
+encode different types of information, that these
+bridge connections will enrich the model’s multi-
+modal representations. And indeed, BridgeTower
+is able to outperform METER on several down-
+stream benchmarks despite being almost identical
+in other respects.
+4.3 Combination Encoders
+Several recently introduced VL modes,VLMo, AL-
+BEF, BEiT-3 , FLA V A and X2-VLM have at-
+tempted to leverage the strengths of both dual
+encoders and fusion encoders in a single model.
+These models contain separate visual and textual
+encoders at the base of the model. The outputs of
+the text encoder and an image encoder are aligned
+using cosine similarity before being fed into a fu-
+sion encoder module of some kind. The VLMo
+model, for instance, combines the two interaction
+schema via a transformer block the model’s cre-
+ators call the mixture of modality experts. Here
+the FFN of a transformer encoder block is re-
+placed with pool of modality specific expert models.
+Specifically the model can direct input to three dif-Figure 8: Depiction of cross-attentions in the two-tower fusion encoder architecture of ViLBERT. From Lu et al.
+(2019)
+ferent modality experts: a vision expert (V-FFN),
+a language expert (L-FFN) and a vision language
+expert (VL-FFN). If the model is given purely lan-
+guage or text inputs, it can encode them with the
+appropriate expert module. When given an image-
+text pair, it can encode each component with the
+correct modality expert at lower layers before using
+the vision language expert module in the top layers.
+This process is visually summarised in Figure 9.
+The architecture and approach of BEiT-3, is very
+similar to VLMo, however it is massively scaled
+up, leading to increased downstream performance
+on a variety of tasks. FLA V A uses a slightly less
+complex architecture but the idea remains the same.
+In FLA V A, the output each modality encoder can
+be passed to a task head for classification for uni-
+modal tasks or be passed to a multi-modal encoder
+after a contrastive loss for vision language tasks.
+The ALBEF model takes a slightly different
+approach in combining dual and fusion encoder.
+Here the respective modalities are encoded and
+then aligned using the cosine similarity and con-
+trastive loss, much like the CLIP or ALIGN mod-
+els. After this step, the representations are then
+fed into a 6-layer fusion encoder that uses cross-
+attention. Though this approach yields a model
+less flexible than that of a model like VLMo, its
+novel approach offers the possibility of a deeper,
+more comprehensive vision language interaction.
+X2-VLM also consists of three separate modules, a
+vision encoder, a text encoder and a fusion encoder
+with features visual and textual features aligned
+using cosine similarity. Significantly, this model
+is larger in scale, is trained on more data and can
+also perform vision language tasks using video as
+input.4.4 Encoder Decoder Models
+Following the architecture of the original trans-
+former, some VL models opt for a design consist-
+ing of at least one encoder stack and a decoder
+stack. The VL-T5, OFA, OmniVL, PaLI, E2E-VLP,
+SimVLM, mPLUG, Flamingo, OmniVL and CoCa
+models all make use of this architecture. Addi-
+tionally, the models mDETR, DQ-DETR, UniTAB,
+KD-VLP and Referring Transformer that all spe-
+cialize in visual grounding tasks use some variation
+of the encoder-decoder design. This model archi-
+tectures is versatile in general and allows models
+using them to successfully perform a wide range of
+functions, including generative tasks such as image
+captioning.
+As an illustrative example we consider VL-T5.
+It consists of a single multi-modal encoder stack
+that accepts a sequence of word-piece tokens and
+image region features. The encoder produces an
+intermediate output h={ht
+1, ..., h,
+|t|hv
+1, ..., hv
+|v|}
+where ht
+iandhv
+irespectively represent the interme-
+diate state vector for textual and visual represen-
+tations. The decoder stack then iteratively attends
+to its own previously generated output via self at-
+tention and the encoder’s intermediate outputs via
+cross-attention. Using this procedure the decoder
+computes the probability of future text token j, for-
+mally expressed as Pθ(yj|y<j, h).
+Though the general approach in all of the afore-
+mentioned architectures is basically similar, there is
+a very wide range of design distinctions. mPLUG
+for instance, uses a two-tower encoder of the type
+discussed just above. Notably, its encoder omits
+cross attention on some of the layers for its vi-
+sual component resulting in a more efficient model.
+Flamingo, uses a novel module called a Perceiver
+Resampler to convert the output of a pretrained vi-
+sual encoder to a fixed number of visual features.
+The visual features are then cross-attended by aFigure 9: Combination Dual-Fusion Encoder Architecture for the VLMo model. From Bao et al. (2022)
+text-decoder with alternating blocks of a pretrained
+large language model and novel cross-attention lay-
+ers. These features allow Flamingo to handle an
+arbitrary mix of image and text inputs and generate
+text in an open ended way.
+OmniVL makes use of two encoder stacks a vi-
+sual encoder, that can handle both images and video
+as well as a text transform based on BERT. A novel
+feature of this model is that it makes use of two
+decoder stacks, one decoder for vision language
+alignment and understanding tasks and a separate
+decoder for generative tasks. CoCa also uses two
+decoder networks, though, opposed to OmniVL,
+the outputs of its image encoder and its text de-
+coder are then input to a multi-modal decoder for
+generative tasks.
+The models mDETR, DQ-DETR, UniTAB
+and Reffering Transformers, designed for visual
+grounding tasks, also use encoder-decoder archi-
+tectures. As their names suggest, mDETR and
+DQ-DETR are derived from an transformer based
+object detection model called DETR (Carion et al.,
+2020). Both of these models process image inputwith a CNN backbone and text using a transformer
+encoder. Their output is concatenated and fed to
+a transformer encoder. The decoder module has a
+series of learned embeddings called queries . The
+decoder attends to the encoder output and the query
+embeddings. Finally, the decoder output is sent to
+a feed-forward network for classification. Though
+complex, this process provides the model with the
+type of fine-grained information about visual ob-
+jects required for visual grounding tasks. The Re-
+ferring Transformer also makes use of query em-
+beddings to extract object information, however
+it also contains a seperate query encoder module
+to further process visual object information. The
+last of these models, UniTAB, uses a fairly generic
+encoder-decoder architecture.
+Three models, DaVinci and OFA can perform
+a truly impressive range of tasks and do so with-
+out the significant changes in architecture often re-
+quired to adapt pretrained models to various tasks.
+The decoder module in both models can generate
+both image and textual output, meaning that these
+models can perform vision language understand-ing tasks such as VQA (Antol et al., 2015) as well
+as generative tasks like image-caption generation.
+Notably, both of these models can also perform
+text-to-image generation tasks, like models such as
+DALLE (Ramesh et al., 2021) perform, as well as
+unimodal tasks such as GLUE (Wang et al., 2018)
+and image classification on datasets such as Ima-
+geNet (Russakovsky et al., 2015).
+5 Pretraining Tasks
+This section is devoted to discussing the pretraining
+tasks used by the various VL tranformers. Pretrain-
+ing is a key element of these models success and we
+will devote a significant amount of space to describ-
+ing these methods. Almost all of the fusion and
+combination encoder models make use of masked
+language modeling and image text matching, both
+of which are extensions of the pretraining objec-
+tives used in the BERT NLP model (Devlin et al.,
+2018). Below, we describe these tasks in detail
+along with several additional objectives found in
+the relevant literature.
+5.1 Masked Language Modeling
+Some variation of the masked language modeling
+objective introduced in Devlin et al. (2018) and
+described in section 2.2, is used by all of the fu-
+sion encoder and combination encoder models that
+we reviewed. Several of the encoder-decoder also
+make use of variations on this task such as VL-T5.
+The key difference between this task and masked
+language modeling in pure NLP is that in the VL
+setting, the models have access to corresponding
+visual tokens in addition to unmasked text represen-
+tations. We refer to PixelBERT as a representative
+example. Formally, it minimizes the negative log-
+likelihood:
+LMLM (θ) =−E(t,v)∼DlogPθ(tm|t\m,v)
+Where tmis the masked token being predicted, θ
+are the model’s parameters, t\m, the unmasked text
+tokens, and vare the corresponding image features.
+Each pair (t,v)is sampled from the whole the
+training set D. As in BERT, 15% of test tokens
+are selected at random and replaced with a special
+"[MASK]" token.
+Though all of the fusion encoders make use of
+MLM, there are some minor differences in ap-
+proach worth noting. ALBEF (Li et al., 2021)
+for instance minimizes a cross-entropy loss func-
+tion rather than a log-likelihood. ViLT (Kim et al.,2021), masks only whole word units rather than
+the subword units that most of these models use in
+tokenization. This is done on the theory that visual
+clues are more likely to be associated with whole
+words; e.g. "giraffe" will have more visual mean-
+ing than "gi##" or "##raffe". UNIMO masks only
+contiguous spans of complete words as is done in
+SpanBERT (Joshi et al., 2020). Most models using
+this task, such as SOHO, follow Devlin et al. (2018)
+and mask 15 percent of text tokens. Some models
+deviate from this practice however; BEiT-3 for ex-
+ample masks 40 perent of the text tokens from the
+image-text pairs in its pretraining dataset.
+5.2 Masked Image Modeling
+The masked image modeling task in an exten-
+sion of the masked language modeling objective
+described above. In this setting, however, the
+objects being modeled are image features rather
+than text tokens. ViLBERT, UNITER, VL-BERT,
+LXMERT, Unicoder-VL, BEiT-3, UNIMO, SOHO
+and FLA V A all make use of this objective in one
+way or another. We consider ViLBERT as an ex-
+ample. In ViLBERT, 15% of both text and image
+regions are randomly selected and masked. Rather
+than being replaced by a special "[MASK]" token
+as textual features are, the image features are set
+to 0. The model then predicts a distribution over
+the category labels for its region features. Training
+minimizes the KL divergence between this distri-
+bution and the output distribution for the region
+from the same model R-CNN model it uses for fea-
+ture extraction. LXMERT, Unicoder-VL, UNITER,
+UNIMO and VL-BERT perform the masked image
+modeling classification task in a similar manner.
+Models that do not use region features must ap-
+proach this task differently since they do not have
+labels naturally associated with each visual feature.
+SOHO uses grid features and it uses the index from
+its visual dictionary module that it assigns to each
+feature as the label for classification. BEiT-3 and
+FLA V A, which uses patch features, use a discrete
+variational autoencoder (Ramesh et al., 2021) to
+assign each image patch feature a fixed set of dis-
+crete image codes using the process described in
+Peng et al. (2022). The model must then classify
+each masked patch according to its assigned visual
+token.
+There are a couple of other noteworthy distinc-
+tions in the way this task is deployed among the
+various models. UNITER and LXMERT for ex-Figure 10: Contrastive pretraining from CLIP. From
+Radford et al. (2021)
+ample, extend the masked region modeling task to
+include region-feature regression. Here, the model
+is tasked with predicting the actual feature values
+of a masked region using a loss function such as
+squared error. Another key difference is that mod-
+els such as UNITER will only mask elements from
+one modality at a time; i.e. during masked region
+modeling all text features are be unmasked and
+available to the model vice-versa. VilBERT and
+LXMERT, on the other hand mask a given per-
+centage of all tokens at anytime regardless of their
+modality.
+5.3 Image-Text Matching
+Most of the encoder only models and some of
+the encoder-decoder models, including OFA and
+mPLUG, make use of the binary classification
+image-text matching task. Here the model, given
+an image-text pair must determine if the text in fact
+describes the image. We refer to UNITER as an
+example. Given a text-image pair (t,v), the model
+output is fed into a fully connected layer and a sig-
+moid function to produce an output score Sθ(t,v)
+between 0 and 1. The model then minimizes loss
+function LITM(θ) =−E(t,v)∼D[ylogSθ(t,v) +
+(1−y) log(1 −Sθ(t,v))]. Where y∈ {0,1}is
+the label indicating whether the text and image are
+correctly paired. The negative pairs are created by
+replacing the image or text in paired sample with
+one randomly drawn from the training set D. The
+task is relatively simple and there aren’t many vari-
+ations between its implementations among models.
+5.4 Contrastive Learning
+Contrastive learning is the primary pretraining ob-
+jective employed by dual encoder models such as
+CLIP, ALIGN, LIT and Florence and is also usedin the combination models ALBEF, VLMo, X2-
+VLM and FLA V A. Several of the endocder-decoder
+type models also use some type of contrastive loss,
+including COCA, mPLUG and Flamingo. We con-
+sider the contrastive loss in CLIP as a representa-
+tive example. Given a batch of Nencoded (image,
+text) pairs, the CLIP model is trained to predict
+which of the N2possible (image, text) pairs actu-
+ally occurred. This is achieved by jointly training
+an image encoder and a text encoder to minimize
+the cosine similarity of the Ncorrect pairs and max-
+imize the cosine similarity of the N2−Nincorrect
+pairs. The similarity scores are input to a binary
+cross entropy loss function to be optimized. For
+normalized values, the cosine similarity reduces
+to a simple dot product. This process is visually
+summarized in Figure 10.
+Florence uses a slightly modified approach
+called unified image-text contrastive learning that
+was introduced in Yang et al. (2022a). The unified
+approach uses a text hash-table to allow a single
+text description to be associated with multiple im-
+ages, a capability not present in the procedure de-
+scribed above. The contrastive loss used in UNIMO
+is heavily augmented through text rewriting and
+image/text retrieval to create a large volumes of
+positive and negative examples. Among the minor
+distinctions among contrastive loss objectives are
+approaches to normalizing features. Some mod-
+els such as CLIP, use the l2 function to normalize
+features, while others such as VLMo and ALBEF
+employ a softmax normalization function. A no-
+table feature of contrastive learning is a relatively
+simple objective function and it scales well to large
+datasets.
+5.5 Visual Question Answering
+Some VL transformers use variants of the visual
+question answering task where the model must
+choose or generate an answer given as part of their
+pretraining regime. Some example image-question
+pairs are displayed in Figure 12 as visual aid. Of
+the models we reviewed, LXMERT, OFA and VL-
+T5 use visual question answering. LXMERT treats
+VQA as a classification task where the model must
+choose the correct answers from set. VL-T5 and
+OFA on the other hand leverage their decoder mod-
+ule to simply generate the text given an image,
+question pair.Figure 11: Depiction of the visual-grounding tasks used by mDETR for pretraining. From Kamath et al. (2021)
+Figure 12: Examples from the Visual Question Answer-
+ing dataset. The VQA task is used by several models
+for pretraining. From Antol et al. (2015)
+5.6 Visual Grounding
+Visual grounding tasks are those that connect a spe-
+cific visual object with the words or phrases that
+describe them. Reference resolution, identifying
+which object within an image a given phrase refers
+to, is an example of visual grounding task. Publicly
+available datasets such as RefCOCO (Kazemzadeh
+et al., 2014) can be used to benchmark reference
+resolution. Grounded captioning is the inverse task,
+where the model is given an image region and must
+generate a caption that accurately describes it. Vi-
+sual grounding tasks are of particular interest be-
+cause they provide direct, fine-grained connections
+between words and specific visual objects.
+Three versatile, general purpose VL models,
+OFA, X2-VLM and VL-T5 make use visual ground-
+ing tasks. OFA uses both reference resolution and
+grounding captioning as proxy tasks. For reference
+resolution, it learns to generate a location that spec-
+ifies the region position < x1, y1, x2, y2>based
+on the input of the image along with the instruc-
+tion "Which region does the text x describe?" For
+the grounded captioning task OFA learns to gen-
+erate a description based on the input image andthe instruction "What does the region describe? re-
+gion: < x1, y1, x2, y2>". VL-T5 performs visual
+captioning in essentially the same fashion. VL-T5
+performs reference resolution slightly differently,
+however.
+Additionally, visually grounded transformers all
+make use of some form of visual grounding task.
+mDETR for example uses the same technique as
+DETR (Carion et al., 2020) to predict bounding
+boxes for visual objects within each image. It then
+assigns each predicted object a probability of being
+associated with each word in the referring phrase.
+This process is depicted in Figure 11. The other
+models designed for grounding tasks, such as DQ-
+DETR, Reffering Transformer and UniTAB use
+a variety approaches and the interested reader is
+encouraged to consult their source papers for more
+detail.
+5.7 Image Captioning
+Image captioning requires a model to generate a
+description of a provided image input. As a proxy
+task it differs from grounding captioning in that
+the caption must describe the entire image. Three
+of the models we reviewed, OFA, E2E-VLP and
+CoCa, use image captioning as a pretraining ob-
+jective. In principal, the image captioning task is
+just the causal language modeling task that uses
+an image as context to condition the prediction of
+text tokens. CoCa, for instance formally defines
+the task as the conditional log likelihood
+Lcap=−TX
+t=1logPθ(yt|y<t,x)
+where T is the sequence length, ytis the token
+being predicted, y<tare the model’s previous pre-
+dictions and x are the associated image representa-
+tions.Figure 13: Depiction of the prefix modeling task used by DaVinci for pretraining. From Diao et al. (2022)
+5.8 Prefix Language Modeling
+Prefix language modeling can be seen as hybrid
+between traditional causal language modeling and
+masked language modeling. Three of the mod-
+els we reviewed, DaVinci, mPLUG and SimVLM,
+make use of this training objective. SimVLM, for
+instance formulates prefix modeling in the follow-
+ing way, a given sequence of tokens is truncated
+to randomly selected length Tp. The sequence of
+tokens x<Tpis denoted as the prefix and x≥Tpas
+the suffix. Bidirectional attention is then applied
+to the prefix sequence and autoregressive language
+modeling is applied to suffix sequence. In both the
+SimVLM and mPLUG models, the prefix sequence
+is chosen in such a way that it always contains all
+of the image tokens and the suffix consists entirely
+of text.
+The DaVinci model uses a similar prefix lan-
+guage modeling task and also extends the notion
+to a prefix image modeling task. Here the model
+is presented with a prefix consisting of a complete
+sequence of text tokens and a partial sequence of
+image tokens. The model must then restore the
+image tokens in the suffix given the prefix and its
+previous output. The task is depicted in Figure 13.
+5.9 Other Objectives
+The previous sections in this section cover most
+of the pretraining objectives used by the models
+reviewed for this paper. However, there a few other
+noteworthy examples that bear mentioning before
+we close this section. PixelBERT takes a random
+sample of its pixel grid features as a form of pre-
+training regularization. This task of course, can
+only employed by models like PixelBERT use grid
+features. Finally, the VLMo model uses a stage-wise pretraining procedure. The VLMo model is
+a gated mixture of experts network consisting of
+vision, language and multi-modal sub networks.
+It first trains the vision expert using BEIT (Bao
+et al., 2021) style masked imgage modeling while
+the language and multi-modal weights are frozen.
+Then it proceeds to training to the language expert
+with text-only masked language modeling with the
+vision weights frozen. Finally, the full model is
+trained with an image-text matching objective. This
+more or less exhausts the approaches to pretraining
+used in VL transformers and we have largely sum-
+marized most of the meaningful differences among
+the various VL transformers. Several models, such
+as UNIMO, employ unimodal training tasks that
+deal exclusively with language or vision without
+freezing parts of the model as is done in VLMo.
+6 Downstream Capabilities
+In principle, most of the models that we’ve dis-
+cussed can be adapted to almost any given VL task
+with the proper adjustments to model architecture
+and a fine-tuning regime. Many models however,
+were explicitly designed and tested for certain VL
+capabilities. Dual encoders, for instance are espe-
+cially well suited for alignment tasks such as text
+to image retrieval. The grounded transformers, e.g.
+mDETR or Referring Transformer, were trained
+on and extensively evaluated on visual grounding
+tasks. In this section we briefly cover the range
+of VL tasks that the creators of the models we re-
+viewed either pretrained, evaluated zero-shot or
+fine-tuned on their models on. In the process, we
+will take the opportunity to reference some of the
+major benchmarks used for each type of task.6.1 VL-Alignment
+We define vision language alignment tasks as those
+tasks such that given a token from one modality,
+they must correctly relate a set of tokens from the
+other modality. Retrieval tasks are the canonical
+examples of alignment task. For example, in text
+to image retrieval, a model is given an text descrip-
+tion and must select and rank a set of matching im-
+ages. MSCOCO (Lin et al., 2014) and Flickr30K
+(Plummer et al., 2015) are two publicly available
+datasets that are often used as benchmarks. The
+vast majority of models we have reviewed have
+been evaluated on at least one retrieval task. Dual
+encoder models such as CLIP, ALIGN and LiT
+however, are designed for VL-alignment tasks. Be-
+cause image representations for these encoders can
+be cached, the simple nature of the models allow
+for quick scoring of large sets of image-text pairs.
+This makes dual encoders ideal for alignment tasks
+such as image searches.
+6.2 VL-Understanding
+In vision language understanding tasks a model
+must correctly classify the relationship between
+a given image text pair. VL understanding tasks
+include popular benchmarks such as VQA (Antol
+et al., 2015), where a model must choose the cor-
+rect answer to a question about an image, NLVR2
+(Suhr et al., 2018), where a model must determine
+if a statement about an image is true or false. Exam-
+ple image-text pairs from the NLVR2 dataset are
+shown in Figure 14. All of the fusion encoders that
+we’ve discussed, both the one-tower and two-tower
+variations, are fine-tuned and benchmarked on VL-
+understanding tasks. Encoder-decoder models are
+also well tested on understanding tasks, though
+often they recast them as text-generation tasks.
+OFA, for instance, performs VQA by providing
+the model with an image and question and allow-
+ing it to generate the correct answer. This approach
+allows some encoder-decoder models to perform
+multiple types of VL-understanding tasks without
+the architectural changes encoder only models usu-
+ally require. With the exception of Florence, most
+dual encoders aren’t well tested on understanding
+tasks.
+6.3 VL-Text Generation
+Vision language text generation tasks are those such
+as image captioning, where a model is presented
+with an image or an image-text pair and must gen-
+Figure 14: Examples from the NLVR2 task. Model
+must correctly answer true or false. This is a common
+benchmark for VL-understanding. From Suhr et al.
+(2018)
+erate an appropriate sequence of text describing
+the image. MSCOCO Captions (Chen et al., 2015)
+and nocaps (Agrawal et al., 2019) are two common
+image captioning benchmarks. The models best
+suited to tasks of this nature are those that contain
+a decoder module. Encoder-decoder models such
+as, CoCa, SimVLM, mPLUG, OFA, DaVinci, Om-
+niVL and GiT are all evaluated on text generation
+tasks. Despite not having a decoder that is opti-
+mized for text generation, the encoder-only models
+BEiT-3, OSCAR, VinVL, X2-VLM and UNIMO
+were evaluated and perform well on image caption-
+ing tasks. None of the visually grounded transform-
+ers we reviewed were explicitly evaluated on VL
+text generation task, though, in principle they could
+be adapted to the task without too much difficulty.
+6.4 Visual Grounding, Grounded Captioning
+and Object Detection
+Visual grounding tasks are those which require
+a model to match words or phrases to the dis-
+tinct visual objects they describe. RefCOCO
+(Kazemzadeh et al., 2014) is the premier dataset for
+benchmarking visual grounding tasks. Grounded
+captioning, accurately describing a specific object
+within an image, and visual object detection are
+related tasks. The visually grounded transformers,
+mDETR, DQ-DETR, KD-VLP, Referring Trans-
+former and UniTAB were all designed, trained and
+evaluated specifically for these types of grounded
+modeling. The encoder-decoder models OFA and
+VL-T5 are also pretrained and evaluated on ground-
+ing related tasks. And though not pretrained on any
+grounding related tasks, the encoder only models
+ALBEF, BEiT-3, LXMERT, UNITER, VilBERT,Figure 15: An image generated by OFA with the text
+that prompted it. From Wang et al. (2023b)
+VisualBERT AND X2-VLM and the endcoder-
+decoder models BLIP-2, E2E-VLP and mPLUG
+were all evaluated on visual grounding or object
+detection tasks.
+6.5 Image Generation
+In text to image generation, such as that performed
+by DALL-E (Ramesh et al., 2021), a model pro-
+vided with a text description must output an ap-
+propriate image. Most of the models discussed in
+this paper of geared toward classifying or generat-
+ing text related to images. Two models however,
+OFA and DaVinci, are capable of generating im-
+ages in addition to the other sets of tasks described
+above. An image generated by OFA with the text
+that prompted it is displayed in Figure 15.
+6.6 Video Tasks
+Though video-based models have not been the fo-
+cus of this paper, it is worth noting that a number
+of models can perform video retrieval and under-
+standing tasks in addition to the tasks previously
+described. Models such as CoCa, Florence, GiT,
+and Omni-VL were all designed and trained for
+video tasks and are evaluated on a variety of video
+benchmarks.
+6.7 Unimodal Tasks
+Several models are also trained to and evaluated
+on vision-only or text-only tasks. The dual en-
+coder models such as CLIP and ALIGN are eas-
+ily adapted to pure computer vision tasks such
+as image classification are all evaluated on such
+tasks. Many of the flexible encoder-decoder models
+are also evaluated on image classification. These
+models include BLIP-2, CoCa, DaVinci, FLA V A,
+Flamingo, GIT, OFA, OmniVL and PaLi. Surpris-
+ingly, from the fusion encoder models that we re-
+viewed, UNIMO is the only one that was specif-ically trained and evaluated on unimodal tasks.
+Many fewer models have been evaluated on pure
+NLP tasks such as the GLUE benchmark (Wang
+et al., 2018). Of those reviewed for this paper, only
+UNIMO and OFA were explicitly benchmarked on
+such pure NLP tasks.
+7 Pretraining Data
+In this section we address the subjects of the source
+and size of the various pretraining datasets used
+to train the models we’ve discussed. Though not
+intrinsically related to the models, the source and
+amount of pretraining data have a tremendous im-
+pact on the models downstream performance. The
+majority of models are pretrained using a small
+set of publicly available vision language datasets
+which are briefly described in the subsection im-
+mediately below. In the following subsection we
+provide a similar description of the several models
+that make use of proprietary datasets. Finally, we
+end with a subsection devoted to the various sizes
+of the pretraining datasets used.
+7.1 Public Data Sources
+The following public datasets of the models de-
+scribed above are used alone or in combination
+with other datasets and form the bulk of the pre-
+training data for the models that we’ve discussed.
+Two of them MSCOCO snd Visual Genome were
+annotated by human subjects. The remainder were
+collected and filtered from the web and are in gen-
+eral much larger in scale, but are noisier.
+7.1.1 Human Annotated Datasets
+MSCOCO Microsoft’s Common Objects in Con-
+text (MSCOCO) is among the most widely used
+datasets for VL tasks. The dataset was introduced
+by (Lin et al., 2014) and was originally intended
+for object recognition tasks. Overall it consists of
+a total of 2.5 million labeled object instances in
+328k unique images. Of that, over 164,000 of them
+contain up to 5 independent, user-generated sen-
+tences describing the scene. The training split of
+MSCOCO contains 118k images and their anno-
+tations, though most model creators remove some
+images to avoid data leakage to downstream tasks.
+ViLT, for instance uses a total of 113k images with
+5 captions each for a total of 567k image-text pairs.
+The annotations were all produced using workers
+via Amazon’s Mechanical Turk service. MSCOCO
+is publicly available and is used for pretraining,
+generally in conjunction with other datasets, byFigure 16: Picture from The Visual Genome dataset. Examples of bounding boxes, region descriptions and scene
+graphs are shown. From Krishna et al. (2017)
+a number of the model’s we reviewed, including
+ViLT, METER, mDETR and many others.
+Visual Genome The Visual Genome dataset (Kr-
+ishna et al., 2017) consists of only 108k unique
+images. The images are from the intersection of
+MSCOCO and YFCC100M (Thomee et al., 2016).
+The set of human derived annotations, also gener-
+ated using Amazon Mechanical Turk, however is
+much richer than the MSCOCO dataset. Each im-
+age includes a large number of detailed descriptions
+of various image regions, an extensive set of seg-
+mented objects and their labels, as well as a scene
+graph relating the various objects. Because each
+image has 50 descriptions of image regions, it can
+provide more than 5 million image-text pairs for VL
+pretraining. An example of an image from Visual
+Genome with some examples of bounding boxes,
+referring expressions and part of the its scene graph
+is shown if Figure 16. Essentially all of the models
+that we’ve reviewed trained with publicly available
+data make use of Visual Genome as a pretraining
+dataset. In traditional computer vision modeling, it
+is also among the most popular datasets for training
+object detectors.
+7.1.2 Web Sourced Datasets
+SBU Captions The Stony Brook University
+(SBU) Captions dataset was introduced in Ordonez
+et al. (2011) and was one of the first web-scale vi-
+sion language datasets produced. The images and
+their associated text were first extracted from Flickr.
+Then the authors use a matching process to find ad-
+ditional images without associated text that match
+those previously collected. Matched photographs
+are then paired with appropriate text descriptions
+Figure 17: From Sharma et al. (2018)
+from the dataset. The process results in a dataset
+of around 1 million image-text pairs. The SBU
+captions dataset is used by a number of models
+in pretraining. It is generally used in conjunction
+with one or both of the Conceptual Captions sets
+described below.
+Conceptual Captions The Conceptual Captions
+dataset was introduced in Sharma et al. (2018). The
+data was gathered by crawling a large number of
+english language websites and filtering for images
+with accompanying alt-text. The alt-text is then fil-
+tered and cleaned, resulting in a concise caption to
+describe each image. The original Conceptual Cap-
+tions dataset contains three million image text-pairs
+and is often referred to as CC3M. Some example
+images, alt-texts and captions are from the CC3M
+set are shown in Figure 17. The Conceptual 12M
+dataset was introduced in Changpinyo et al. (2021).
+The authors used a similar collection process as
+Sharma et al. (2018) but were able to dramatically
+increase the size of the resulting dataset by relaxing
+the filtering criteria. This increase in scale however,
+comes at the expense of a much noisier dataset.Figure 18: From Jia et al. (2021)
+LAION-400M The LAION-400M dataset
+(Schuhmann et al., 2021) is a massive collection
+of images and associated alt-text sourced from
+the web. The images are filtered for explicit
+content and caption length. Then a similarity score
+between each image and its associated text using
+CLIP; if the score falls below a certain threshold
+the pair is discarded. In this way, the creators
+produce a dataset of over 400 million image-text
+pairs.
+7.2 Proprietary Datasets
+ALIGN The creators of ALIGN (Jia et al., 2021)
+constructed a proprietary dataset consisting of 1.8
+billion image-text pairs using the same process that
+Sharma et al. (2018) used in creating the CC3M
+dataset. The massive size of the dataset stems from
+the fact that its creators chose to relax most of
+the cleaning standards used to create the Concep-
+tual Captions set. Though the resulting data is
+extremely noisy, the dataset’s creators argue that
+the sheer amount of data tends to overcome the
+inherent noise. Example image-text pairs from the
+ALIGN set are shown in Figure 18.
+CLIP The CLIP model was trained on a propri-
+etary dataset consisting of 400 million image-text
+pairs. The model’s creator’s don’t give much de-
+tail on their collection process, other than saying
+"we constructed a new dataset of 400 million (im-
+age, text) pairs collected form a variety of publicly
+available sources on the Internet."
+Flamingo In addition to the using the dataset
+from the ALIGN model (Jia et al., 2021), the cre-
+ators of Flamingo also make use of two datasets
+of their own creations. The first of these is called
+LTIP (Long Text and Image Pairs) and it consists
+of 312 million image-text pairs. The authors also
+curate a custom video-text dataset with 27 million
+examples.LiT The creators of LiT, created a dataset using
+the essentially the same process as ALIGN, how-
+ever, the further relaxed the text-filtering standards.
+The result is a turly massive dataset consisting of 4
+billion image-text pairs.
+7.3 Data Sizes
+In addition to the various sources of pretraining
+data, we also consider the size of the pretraining
+dataset used. The size of the pretraining datasets
+range from that of VisualBERT, which only uses
+the 567k image-text pairs from COCO, to the 4
+billion image-text pairs used to train the LiT model.
+For convenience we categorize pretraining dataset
+sizes into small, medium and large sizes. Because
+we do not currently have the type of extensive meta-
+analysis studies which formally analyze the effects
+of pretraining data quantity, these categories are
+somewhat arbitrary. Said categories are, however,
+useful in describing distinctions in pretraining data
+quantities and we begin with models using small
+datasets, which we define as 10 million or fewer
+image-text pairs.
+Small: Fewer than 10M I-T Pairs The major-
+ity of the models discussed here were trained with
+10 million or fewer image-text pairs. The com-
+bined number of I-T pairs in the popular datasets
+MSCOCO, Visual Genome, SBU Captions and
+CC3M is just under 10 million pairs and a num-
+ber of models, including BridgeTower, METER,
+UNIMO, UNITER, VILLA and ViLT, use exactly
+this dataset. Many models, use even fewer images
+and only make use of COCO and Visual Genome.
+E2E-VLP, KD-VLP, PixelBERT use only the 6 mil-
+lion pairs found in MSCOCO and Visual Genome.
+Because of the need for bounding box annotations
+in object detection and visual grounding, models
+that specialize in such tasks make use of the smaller
+human-annotated datasets designed for said pur-
+pose. mDETR, DQ-DETR and KD-VLP for in-
+stance use only 1.3 million image-text pairs from
+Visual Genome, MSCOCO and the Flickr30K En-
+tities set.
+Medium: 10-25M I-T Pairs By adding the
+CC12M dataset to corpus of MSCOCO, Visual
+Genome, SBU Captions and CC3M, we arrive at
+a dataset with over 21M image-text pairs. This
+set is used by ALBEF, BEiT-3, mPLUG, OFA and
+OmniVL for pretraining.Large: More than 25M I-T Pairs The dual en-
+coder type models all use relatively large pretrain-
+ing datasets. CLIP, ALIGN, LiT and Florence all
+use large web-sourced datasets of 400 million to 4
+billion image-text pairs. Several of the large mod-
+els, such as GIT, PaLI, FLA V A, Flamingo, CoCa
+and DaVinci use large proprietary datasets. These
+last models are all quite large and likely need sig-
+nificant amounts of data to leverage the power of
+their scale.
+8 Analysis and Future Directions
+In this final section, we draw some general conclu-
+sions about the models we’ve previously discussed.
+The first two sections are devoted to the overall
+strengths and limitations of the available VL trans-
+former models. In the third section, we discuss
+some of the open questions and possible directions
+for future research. Finally, we conclude the pa-
+per with a concise statement on the state of VL
+transformers and their likely role in the immediate
+future of AI research.
+8.1 Strengths
+8.1.1 Generalized Representations
+One of the principal advantages of transfer learn-
+ing from pretrained models is the incredible adapt-
+ability they offer. Prior to the recent advent of
+pretrained VL transformers, complex, task-specific
+models were required to reach state-of-the-art per-
+formance on popular VL benchmarks. Examples in-
+clude DGAF (Gao et al., 2019), for visual question
+answering, MAttNet (Yu et al., 2018), designed
+to perform referring expression related tasks, and
+R2C (Zellers et al., 2018), for visual common sense
+reasoning. Each model is designed and trained for
+the end task and could not be easily adapted to
+other tasks, whereas all of the fusion encoder and
+encoder-decoder models we have described can
+be easily transferred to other tasks with minimal
+changes in architecture and manageable training
+requirements. Though the pretraining cost of these
+models is very high (often excessively so), it is in-
+curred only once and the models can be fine-tuned
+with significantly less compute and limited data
+input required.
+8.1.2 Ease of Understanding and Use
+In addition to being confined to a small set of use
+cases, task-specific VL models are often complex
+and difficult to comprehend. Consider the MAt-
+tNet model (Yu et al., 2018)), designed to performthe reference resolution task (i.e. given an expres-
+sion describing an object in an image, the model
+must identify the object referred to). The MAttNet
+model decomposes word embeddings produced by
+an RNN model into modules describing different
+aspects of a phrase and uses an attention network
+to relate them to image regions produced by an R-
+CNN. Understanding and reproducing a model like
+this would require a great deal of background study
+and programming experience. Though transform-
+ers are themselves complex models, their ubiquity
+ensure that most deep learning practitioners have
+some familiarity with their workings.
+VL-Transformers also simplify the practical use
+of vision language modeling. After the costly
+pretraining phase has been completed, most VL-
+transformers can be adapted to new tasks by a
+straight forward fine-tuning process. Fine-tuning
+generally consists of removing the final layer of
+the model and replacing it with a randomly ini-
+tialized linear layer with an activation appropriate
+to the task at hand, such as a softmax or sigmoid
+layer for classification problems. The weights are
+then updated as a traditional supervised learning
+task. The LA VIS (Li et al., 2022b) vision language
+framework further simplifies the process. LA VIS
+is Python library for VL modeling that abstracts
+much of the difficult programming associated with
+deploying VL models and includes models such as
+CLIP, BLIP and ALBEF. With efforts such as these,
+VL transformers offer the possibility of making VL
+tasks as accessible as NLP and CV tasks currently
+are using pretrained models from each field.
+8.1.3 Performance
+Finally and likely most importantly, pretrained VL
+transformers simply perform better on most tasks
+than task-specific models. As appealing as their
+adaptability and simplicity are, pretrained trans-
+formers would not be so popular if they were rou-
+tinely outperformed by other models. Just as it did
+in NLP, the transformer architecture has spurred
+huge advances in the performance of VL models.
+Leader boards for popular VL benchmarks as di-
+verse as VQA and referring expression comprehen-
+sion with RefCOCO are now dominated by trans-
+former models.1.
+1https://eval.ai/web/challenges/challenge-
+page/830/leaderboard/2278, https://paperswithcode.com/sota/referring-
+expression-comprehension-on-refcoco8.2 Limitations and Open Questions
+8.2.1 Pretraining Data and Compute
+The tremendous strengths of pretrained transform-
+ers come at the cost of huge pretraining data re-
+quirements and enormous compute costs. The ex-
+cessive compute costs arise from the enormous ab-
+solute size of VL-Transformers. At the small end
+are early encoder only models such as UNITER-
+Base, which contains 83M parameters. Even these
+"small" models are quite large and require enor-
+mous compute resources to pretrain or fine-tune.
+This problem is compounded during model devel-
+opment and research since multiple models are
+usually trained to test various configurations and
+hyper-parameters and to ensure that results are re-
+producible. As part of a meta-analysis experiment
+for VL transformers, Bugliarello et al. (2021) cre-
+ated a controlled setup for analyzing model perfor-
+mance. They estimated that training a single VL
+transformer 10 times for 4 downstream tasks re-
+quired a 4-GPU machine on AWS for two months,
+costing around $6,000 at the time they published
+the paper in 2021. On the other end of the spectrum
+are models based on large language models such as
+Flamingo which contains 80B parameters. Models
+this size require enormous compute simply for the
+purpose of inference, to say nothing of training.
+A related problem that transformers face is the
+amount of pretraining data that they require to
+achieve strong results. Pretraining data require-
+ments for VL transformers range from that of mod-
+els like ViLBERT, which uses 3 million image-
+text pairs from the Conceptual Captions dataset,
+to GIT-2 which uses a whopping 12.9B imag-text
+pairs. Simply storing and processing this many
+image-text pairs is a cumbersome process. The
+need for massive datasets is aggravated by the fact
+that image-text data is difficult to produce. In order
+to be useful, the text data must be somehow related
+to the image it is paired with. Creating datasets of
+this kind often requires human annotation, though
+such set are generally quite small given the expense
+involved. Web-crawled datasets, such as the 1.8B
+image-text pairs used to train ALIGN, can be ob-
+tained using images and their assiciated alt-text,
+though these data are much noisier than human
+annotated data.
+8.2.2 Pretraining Tasks
+Independent of the amount of data and compute
+required to pretrain VL models, it is difficult tofind training tasks that explicitly align vision and
+language and determine how much they contribute
+to performance. Extending the masked language
+modeling (or traditional language modeling) task
+to include visual elements is one strategy pursued
+by most of the models we have discussed in this
+paper. Yet standard NLP models such as BERT are
+already very good at the language modeling with-
+out the use of visual information. It is difficult then
+to determine how much visual feature representa-
+tions actually contribute to a given task. This is
+especially true for models such as ViLBERT where
+the language processing stream is initialized with
+the pretrained weights from the standard BERT
+NLP model (Devlin et al., 2018).
+To explicitly model vision and language interac-
+tion, many of the models we have discussed use
+the image-text matching task we described in Sec-
+tion 5.3. Though this task has the advantage of
+requiring that vision and language interaction be
+modeled, it does not require the model to make
+connections between the meaning of words and the
+objects they actually describe. Furthermore, the
+image-text matching objective can be viewed as an
+extension of the next sentence prediction used in
+the training of BERT. Subsequent work, such as Liu
+et al. (2019), showed that the next sentence objec-
+tive can be eliminated without hurting the model’s
+performance. It is worth investigating whether such
+a straightforward binary classification is also pro-
+viding marginal contributions to the VL pretraining
+process.
+A variety of models do make use of more in-
+volved pretraining tasks. LXMERT, OFA and VL-
+T5 for instance all make use of a visual question
+answering task. Visual grounding tasks, match-
+ing objects in images to textual descriptions, are
+used by OFA, VL-T5, mDETR, X2-VLM and sev-
+eral other models. Pretraining tasks of this nature
+more explicitly align vision and language and could
+possibly prove superior as proxy tasks. Unfortu-
+nately, tasks of this nature often require specialized
+datasets. Visual grounding tasks, for instance re-
+quire the type of annotations found in RefCOCO.
+Said annotations are expensive to produce and the
+resulting dataset is very small. This poses an acute
+problem for pretraining data hungry transformers.
+Furthermore, to date, there is no detailed model
+development process or meta-analysis showing to
+what degree pretraining regimes such as these af-
+fect downstream performance. Until such data isavailable in the literature, it will remain an open
+question what a maximally effective vision lan-
+guage pretraining regime would entail.
+8.2.3 Visual Embeddings
+It is still an open question, as to what visual
+embedding strategy is best and under what cir-
+cumstances. Many early models, ViLBERT and
+UNITER among them, made use of the region fea-
+tures described in Section 3. These features were a
+popular choice for visual embedding type because
+they can be produced by out of the box R-CNN
+models and directly fed into VL models, yet they
+have several drawbacks. Firstly, region features
+are confined to the object categories on which the
+object detection model was trained. This places an
+inherent limit on what types of visual information
+that the model can learn. Secondly, region features
+are usually denoted by rectangular bounding boxes
+and don’t account well for shapes of objects they
+contain or their relationship to one another. Finally,
+CNN-based object detection models consume a
+great deal of compute and represent a serious bot-
+tleneck in the modeling process.
+The creators of ViLT (Kim et al., 2021) per-
+formed an analysis of the inference time for several
+of the models we discussed. Using region features,
+fusion encoders like the UNITER model spend
+the overwhelming majority of their inference time
+creating and operating on visual embeddings. Be-
+yond creating a computational bottleneck, spending
+more time on data preprocessing than modeling is
+simply not a desirable design feature.
+The grid features of PixelBERT (Huang et al.,
+2020) and SOHO (Huang et al., 2021a) have the
+advantages of reducing visual processing require-
+ments and removing the theoretical ceiling on vi-
+sual learning of region features. They also offer a
+dense set of image features for each image input.
+But, a model like PixelBERT still spends more time
+on visual preprocessing than VL modeling (Kim
+et al., 2021). Furthermore, a separate CNN mod-
+ule was required to produce grid features, adding
+additional complexity to the model.
+Finally, models such as ViLT, that use patch em-
+beddings spend a negligible percentage of infer-
+ence time on visual processing. While this appears
+to solve the issue of excessive compute require-
+ments for processing visual features, there is some
+concern that patch emeddings provide inferior rep-
+resentatoins to other approaches. ViLT, the first
+model found in the literature to make use of patchembeddings performed worse on most VL under-
+standing tasks than similar models using region
+features. Later models that use patch embeddings,
+such as METER and BridgeTower, however, per-
+form quite well on these tasks. A potential deficit of
+visual information is of special concern for object
+identification tasks where patch embeddings don’t
+have access to the explicit object type information
+included in region feature representations. Almost
+all of the models that made use of visual grounding
+tasks in pretraining used, e.g. mDETR, use grid
+or region features. Without more detailed meta-
+analysis of VL transformers, it is still difficult to
+determine the best approach to visual embeddings.
+8.3 Future Directions
+8.3.1 Data Generation and Meta Analysis
+Though not directly tied to the process of model
+development, the generation of more quality vision
+language datasets is a clear need in the current re-
+search environment. There is currently a deficit
+of publicly available pretraining data as well as
+quality datasets for benchmarking VL models. The
+huge majority of models reviewed for this paper use
+some combination of MSCOCO, Visual Genome,
+SBU Captions and one or both of the Conceptual
+Captions datasets for pretraining. The addition of
+more quality pretraining data has been very bene-
+ficial to transformer’s in other domains (Liu et al.,
+2019) and would almost certainly improve the per-
+formance of most of the models we’ve described.
+Similarly we also see a paucity of data on which
+to benchmark model performance. The models
+we’ve discussed here all evaluated on a narrow set
+of downstream tasks such as VQA (Antol et al.,
+2015), NLVR2 (Suhr et al., 2018) and the COCO
+cross modal retrieval task. These VL datasets must
+have images paired with textual components that
+accurately describe, question or reference them and
+are resource intensive to create, usually requiring
+human annotators. That being said, crowd sourcing
+services such as Amazon Mechanical Turk greatly
+simplify the process of rote tasks such as anno-
+tating images. Indeed, several important datasets
+in the VL domain, such as MSCOCO (Lin et al.,
+2014) and VCR (Zellers et al., 2018) were created
+using its services. The process is then reduced to
+finding images, creating a script for anonymous
+workers to follow for annotation and compensating
+workers. Though the need for human annotation
+makes the cost of creating such datasets relativelyhigh, we have already noted that creating and test-
+ing the models discussed here were resource inten-
+sive tasks. Well-resourced institutions interested in
+advancing the field would surely benefit as much
+from more quality data to evaluate models as from
+creating additional variations of VL transformers.
+Another obvious priority is understanding the
+performance of the various models that have al-
+ready been created. One of the few published pa-
+pers attempting a meta-analysis of current VL trans-
+former models is Bugliarello et al. (2021). This
+analysis sheds some light on how some of the mod-
+els that we’ve discussed perform, yet it leaves open
+important questions such as whether dual or single
+stream fusion encoders offer superior performance,
+whether or not the patch embedding strategy is a
+viable solution to the problems posed by region fea-
+tures, and how effective are the pretraining objec-
+tives currently in use. Answering questions of this
+nature would require thorough controlled studies
+in which potential confounds such as pretraining
+data size (and type), training hyper-parameters that
+are held constant, and each model configuration
+is trained multiple times and evaluated on a broad
+range of downstream tasks. Studies of this nature
+would be a significant undertaking with such large
+models.
+As with data generation, however, investments
+in meta-analysis should surely take priority over
+model development. Simply put, model develop-
+ment has outpaced the supply of data and what we
+know about how these models perform. If dual-
+tower architectures cannot be shown to improve
+performance, it is hard to justify the additional pa-
+rameters of a second transformer encoder stack.
+Similarly, if patch embeddings can perform on par
+with region features, they represent a better visual
+embedding strategy based on their huge advantage
+in efficiency. Along with controlled experimenta-
+tion, a large and diverse body of data for model
+pretraining and evaluation are the keys to resolving
+these open questions and guiding future research.
+8.3.2 Alternative Pretraining Tasks
+The pretraining regimes that we’ve covered in this
+paper are mostly straightforward extensions of the
+pretraining objectives used in NLP models such
+as BERT. The choice to extend BERT’s training
+objectives was a natural place to start, however, as
+we have previously described, there seems to be
+a great deal of room for exploring new pretrain-
+ing objectives that create deeper and more explicitinteractions between vision and language modali-
+ties. In particular, we believe that VL transformers
+would benefit from a more complex and detailed
+set of training objectives such as visual grounding
+tasks and visual question answering.
+In the course of developing the METER model,
+Dou et al. (2022) conducted an extensive study of
+various model architectures in search of the most
+effective design. We propose that a similar ap-
+proach testing novel pretraining tasks would also
+be beneficial and could possibly result in state-of-
+the-art results. In addition to systematically testing
+the pretraining objectives that we have previously
+introduced, there are other approaches worth in-
+vestigating. Position guided text prompting (Wang
+et al., 2023a) is an example of such a task. It splits
+an image into patches, identifies various objects in
+each patch and produces a series of fill in the blank
+tasks based on said object information. Crucially,
+the authors designed it to be compatible (at least
+theoretically so) with any type of VL transformer
+architecture. A thorough investigation of such pre-
+training tasks would almost surely move the field
+of VL modeling forward.
+8.3.3 Additional Modalities
+The extraordinary versatility of transformers recom-
+mends them to be applied to additional modalities
+beyond just language and vision. An evolving body
+of research is attempting to do just that. Models
+such as ONE-PEACE (Wang et al., 2023b) and
+V ALOR (Chen et al., 2023) model vision and lan-
+guage but also incorporate the audio modality using
+techniques that are quite similar to the ones dis-
+cussed in this paper. Remarkably, transformers can
+also be applied to even more sensory modalities.
+PALM-E (Driess et al., 2023) is an embodied vision
+language models that is capable of performing a va-
+riety of robot maniputlation tasks. The model can
+additionally perform the types of vision language
+tasks referenced throughout this paper as well as
+language-only tasks. In addition to the obvious
+practical applications that these more general mod-
+els might have, they are offer a possible path toward
+resolving problems like the symbol grounding prob-
+lem described in Harnad (1990). Language models
+that incorporate both audio and video modalities
+are one step closer to the type of language ground-
+ing that underscores human speech.8.4 Concluding Remarks
+Pretrained VL transformer models are a relatively
+new creations and there is still a great deal of re-
+search to be done to determine how they should be
+designed and trained. It is not yet clear which of the
+several approaches we’ve discussed are superior.
+This includes basic questions such as how to create
+visual embeddings, single stream versus dual-tower
+architectures or which pretraining objectives to use
+and when. Pretrained transformers also come at the
+cost of huge pretraining data requirements, and this
+is of particular concern in the VL domain, where
+suitable data is hard to find and expensive to pro-
+duce. Pretraining these models would probably
+also benefit from a new set of training tasks that
+explicitly align language and vision in deep and
+meaningful ways.
+With all of that said, the models discussed here
+do appear to considerably advance the state-of-the-
+art on the most common VL benchmarks currently
+available. Moreover, they do this via generalized
+models that can be easily adapted to a variety of
+tasks. VL transformers also offer the possibility of
+being extended to other sensory modalities. In gen-
+eral, they represent a remarkable step forward from
+previous VL models. Connecting symbols such as
+words to their real-world analogs is at the core of
+intelligence (Harnad, 1990) and the models we’ve
+discussed offer promising paths toward achieving
+this goal and significantly improving NLP and AI
+in general. Given these remarkable strengths, pre-
+trained VL transformers will likely play a key role
+in the near future of modeling tasks where vision
+and language intersect.
+References
+Harsh Agrawal, Karan Desai, Yufei Wang, Xinlei Chen,
+Rishabh Jain, Mark Johnson, Dhruv Batra, Devi
+Parikh, Stefan Lee, and Peter Anderson. 2019. No-
+caps: Novel object captioning at scale. In 2019
+IEEE/CVF International Conference on Computer
+Vision (ICCV) . IEEE.
+Jean-Baptiste Alayrac, Jeff Donahue, Pauline Luc, An-
+toine Miech, Iain Barr, Yana Hasson, Karel Lenc,
+Arthur Mensch, Katie Millican, Malcolm Reynolds,
+Roman Ring, Eliza Rutherford, Serkan Cabi, Tengda
+Han, Zhitao Gong, Sina Samangooei, Marianne
+Monteiro, Jacob Menick, Sebastian Borgeaud, An-
+drew Brock, Aida Nematzadeh, Sahand Sharifzadeh,
+Mikolaj Binkowski, Ricardo Barreira, Oriol Vinyals,
+Andrew Zisserman, and Karen Simonyan. 2022.
+Flamingo: A visual language model for few-shot
+learning.Stanislaw Antol, Aishwarya Agrawal, Jiasen Lu, Mar-
+garet Mitchell, Dhruv Batra, C Lawrence Zitnick, and
+Devi Parikh. 2015. VQA: Visual question answering.
+In2015 IEEE International Conference on Computer
+Vision (ICCV) . IEEE.
+Hangbo Bao, Li Dong, and Furu Wei. 2021. Beit: Bert
+pre-training of image transformers. arXiv preprint
+arXiv:2106.08254 .
+Hangbo Bao, Wenhui Wang, Li Dong, Qiang Liu,
+Owais Khan Mohammed, Kriti Aggarwal, Subho-
+jit Som, Songhao Piao, and Furu Wei. 2022. Vlmo:
+Unified vision-language pre-training with mixture-of-
+modality-experts. Advances in Neural Information
+Processing Systems , 35:32897–32912.
+Tom Brown, Benjamin Mann, Nick Ryder, Melanie
+Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind
+Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+Askell, et al. 2020. Language models are few-shot
+learners. Advances in neural information processing
+systems , 33:1877–1901.
+Emanuele Bugliarello, Ryan Cotterell, Naoaki Okazaki,
+and Desmond Elliott. 2021. Multimodal pretraining
+unmasked: A meta-analysis and a unified framework
+of vision-and-language berts. Transactions of the
+Association for Computational Linguistics , 9:978–
+994.
+Nicolas Carion, Francisco Massa, Gabriel Synnaeve,
+Nicolas Usunier, Alexander Kirillov, and Sergey
+Zagoruyko. 2020. End-to-end object detection with
+transformers. In Computer Vision – ECCV 2020 ,
+Lecture notes in computer science, pages 213–229.
+Springer International Publishing, Cham.
+Soravit Changpinyo, Piyush Sharma, Nan Ding, and
+Radu Soricut. 2021. Conceptual 12m: Pushing web-
+scale image-text pre-training to recognize long-tail
+visual concepts. In Proceedings of the IEEE/CVF
+Conference on Computer Vision and Pattern Recog-
+nition , pages 3558–3568.
+Sihan Chen, Xingjian He, Longteng Guo, Xinxin Zhu,
+Weining Wang, Jinhui Tang, and Jing Liu. 2023.
+Valor: Vision-audio-language omni-perception pre-
+training model and dataset. arXiv preprint
+arXiv:2304.08345 .
+Xi Chen, Xiao Wang, Soravit Changpinyo, AJ Pier-
+giovanni, Piotr Padlewski, Daniel Salz, Sebastian
+Goodman, Adam Grycner, Basil Mustafa, Lucas
+Beyer, et al. 2022. Pali: A jointly-scaled mul-
+tilingual language-image model. arXiv preprint
+arXiv:2209.06794 .
+Xinlei Chen, Hao Fang, Tsung-Yi Lin, Ramakr-
+ishna Vedantam, Saurabh Gupta, Piotr Dollar, and
+C Lawrence Zitnick. 2015. Microsoft COCO cap-
+tions: Data collection and evaluation server.
+Yen-Chun Chen, Linjie Li, Licheng Yu, Ahmed
+El Kholy, Faisal Ahmed, Zhe Gan, Yu Cheng, and
+Jingjing Liu. 2019. UNITER: Learning UNiversal
+Image-TExt representations.Jaemin Cho, Jie Lei, Hao Tan, and Mohit Bansal. 2021.
+Unifying vision-and-language tasks via text genera-
+tion. In International Conference on Machine Learn-
+ing, pages 1931–1942. PMLR.
+Zihang Dai, Hanxiao Liu, Quoc V Le, and Mingxing
+Tan. 2021. CoAtNet: Marrying convolution and at-
+tention for all data sizes.
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and
+Kristina Toutanova. 2018. Bert: Pre-training of deep
+bidirectional transformers for language understand-
+ing.arXiv preprint arXiv:1810.04805 .
+Shizhe Diao, Wangchunshu Zhou, Xinsong Zhang,
+and Jiawei Wang. 2022. Prefix language mod-
+els are unified modal learners. arXiv preprint
+arXiv:2206.07699 .
+Xiaoyi Dong, Jianmin Bao, Dongdong Chen, Weiming
+Zhang, Nenghai Yu, Lu Yuan, Dong Chen, and Bain-
+ing Guo. 2021. CSWin transformer: A general vision
+transformer backbone with cross-shaped windows.
+Alexey Dosovitskiy, Lucas Beyer, Alexander
+Kolesnikov, Dirk Weissenborn, Xiaohua Zhai,
+Thomas Unterthiner, Mostafa Dehghani, Matthias
+Minderer, Georg Heigold, Sylvain Gelly, et al. 2020.
+An image is worth 16x16 words: Transformers
+for image recognition at scale. arXiv preprint
+arXiv:2010.11929 .
+Zi-Yi Dou, Yichong Xu, Zhe Gan, Jianfeng Wang,
+Shuohang Wang, Lijuan Wang, Chenguang Zhu,
+Pengchuan Zhang, Lu Yuan, Nanyun Peng, et al.
+2022. An empirical study of training end-to-end
+vision-and-language transformers. In Proceedings of
+the IEEE/CVF Conference on Computer Vision and
+Pattern Recognition , pages 18166–18176.
+Danny Driess, Fei Xia, Mehdi SM Sajjadi, Corey
+Lync, h, Aakanksha Chowdhery, Brian Ichter, Ayzaan
+Wahid, Jonathan Tompson, Quan Vuong, Tianhe Yu,
+et al. 2023. Palm-e: An embodied multimodal lan-
+guage model. arXiv preprint arXiv:2303.03378 .
+Zhe Gan, Yen-Chun Chen, Linjie Li, Chen Zhu,
+Yu Cheng, and Jingjing Liu. 2020. Large-scale adver-
+sarial training for vision-and-language representation
+learning. Advances in Neural Information Process-
+ing Systems , 33:6616–6628.
+Peng Gao, Zhengkai Jiang, Haoxuan You, Pan Lu,
+Steven CH Hoi, Xiaogang Wang, and Hongsheng Li.
+2019. Dynamic fusion with intra-and inter-modality
+attention flow for visual question answering. In Pro-
+ceedings of the IEEE/CVF conference on computer
+vision and pattern recognition , pages 6639–6648.
+Ross Girshick. 2015. Fast r-cnn. In Proceedings of the
+IEEE international conference on computer vision ,
+pages 1440–1448.
+Tanmay Gupta, Amita Kamath, Aniruddha Kembhavi,
+and Derek Hoiem. 2021. Towards general purpose
+vision systems.Stevan Harnad. 1990. The symbol grounding problem.
+Physica D , 42(1):335–346.
+Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian
+Sun. 2015. Deep residual learning for image recogni-
+tion.
+Xiaowei Hu, Zhe Gan, Jianfeng Wang, Zhengyuan Yang,
+Zicheng Liu, Yumao Lu, and Lijuan Wang. 2022.
+Scaling up vision-language pretraining for image cap-
+tioning. In 2022 IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR) . IEEE.
+Zhicheng Huang, Zhaoyang Zeng, Yupan Huang, Bei
+Liu, Dongmei Fu, and Jianlong Fu. 2021a. Seeing
+out of the box: End-to-End pre-training for Vision-
+Language representation learning.
+Zhicheng Huang, Zhaoyang Zeng, Yupan Huang, Bei
+Liu, Dongmei Fu, and Jianlong Fu. 2021b. Seeing
+out of the box: End-to-end pre-training for vision-
+language representation learning. In Proceedings of
+the IEEE/CVF Conference on Computer Vision and
+Pattern Recognition , pages 12976–12985.
+Zhicheng Huang, Zhaoyang Zeng, Bei Liu, Dongmei Fu,
+and Jianlong Fu. 2020. Pixel-bert: Aligning image
+pixels with text by deep multi-modal transformers.
+arXiv preprint arXiv:2004.00849 .
+Chao Jia, Yinfei Yang, Ye Xia, Yi-Ting Chen, Zarana
+Parekh, Hieu Pham, Quoc Le, Yun-Hsuan Sung, Zhen
+Li, and Tom Duerig. 2021. Scaling up visual and
+vision-language representation learning with noisy
+text supervision. In International Conference on
+Machine Learning , pages 4904–4916. PMLR.
+Mandar Joshi, Danqi Chen, Yinhan Liu, Daniel S Weld,
+Luke Zettlemoyer, and Omer Levy. 2020. Spanbert:
+Improving pre-training by representing and predict-
+ing spans. Transactions of the Association for Com-
+putational Linguistics , 8:64–77.
+Aishwarya Kamath, Mannat Singh, Yann LeCun,
+Gabriel Synnaeve, Ishan Misra, and Nicolas Car-
+ion. 2021. Mdetr-modulated detection for end-to-end
+multi-modal understanding. In Proceedings of the
+IEEE/CVF International Conference on Computer
+Vision , pages 1780–1790.
+Sahar Kazemzadeh, Vicente Ordonez, Mark Matten,
+and Tamara Berg. 2014. Referitgame: Referring to
+objects in photographs of natural scenes. In Proceed-
+ings of the 2014 conference on empirical methods in
+natural language processing (EMNLP) , pages 787–
+798.
+Wonjae Kim, Bokyung Son, and Ildoo Kim. 2021. Vilt:
+Vision-and-language transformer without convolu-
+tion or region supervision. In International Con-
+ference on Machine Learning , pages 5583–5594.
+PMLR.
+Ranjay Krishna, Yuke Zhu, Oliver Groth, Justin John-
+son, Kenji Hata, Joshua Kravitz, Stephanie Chen,
+Yannis Kalantidis, Li-Jia Li, David A Shamma, et al.2017. Visual genome: Connecting language and vi-
+sion using crowdsourced dense image annotations.
+International journal of computer vision , 123(1):32–
+73.
+Taku Kudo and John Richardson. 2018. Sentencepiece:
+A simple and language independent subword tok-
+enizer and detokenizer for neural text processing.
+arXiv preprint arXiv:1808.06226 .
+Zhenzhong Lan, Mingda Chen, Sebastian Goodman,
+Kevin Gimpel, Piyush Sharma, and Radu Soricut.
+2019. Albert: A lite bert for self-supervised learn-
+ing of language representations. arXiv preprint
+arXiv:1909.11942 .
+Chenliang Li, Haiyang Xu, Junfeng Tian, Wei Wang,
+Ming Yan, Bin Bi, Jiabo Ye, Hehong Chen, Guo-
+hai Xu, Zheng Cao, et al. 2022a. mplug: Effective
+and efficient vision-language learning by cross-modal
+skip-connections. arXiv preprint arXiv:2205.12005 .
+Dongxu Li, Junnan Li, Hung Le, Guangsen Wang, Sil-
+vio Savarese, and Steven C. H. Hoi. 2022b. Lavis: A
+library for language-vision intelligence.
+Gen Li, Nan Duan, Yuejian Fang, Ming Gong, and
+Daxin Jiang. 2020a. Unicoder-VL: A universal en-
+coder for vision and language by Cross-Modal Pre-
+Training. AAAI , 34(07):11336–11344.
+Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi.
+2023. Blip-2: Bootstrapping language-image pre-
+training with frozen image encoders and large lan-
+guage models. arXiv preprint arXiv:2301.12597 .
+Junnan Li, Ramprasaath Selvaraju, Akhilesh Gotmare,
+Shafiq Joty, Caiming Xiong, and Steven Chu Hong
+Hoi. 2021. Align before fuse: Vision and language
+representation learning with momentum distillation.
+Advances in neural information processing systems ,
+34:9694–9705.
+Liunian Harold Li, Mark Yatskar, Da Yin, Cho-Jui
+Hsieh, and Kai-Wei Chang. 2019. Visualbert: A sim-
+ple and performant baseline for vision and language.
+arXiv preprint arXiv:1908.03557 .
+Muchen Li and Leonid Sigal. 2021. Referring trans-
+former: A one-step approach to multi-task visual
+grounding.
+Wei Li, Can Gao, Guocheng Niu, Xinyan Xiao, Hao
+Liu, Jiachen Liu, Hua Wu, and Haifeng Wang. 2020b.
+UNIMO: Towards Unified-Modal understanding and
+generation via Cross-Modal contrastive learning.
+Xiujun Li, Xi Yin, Chunyuan Li, Pengchuan Zhang,
+Xiaowei Hu, Lei Zhang, Lijuan Wang, Houdong Hu,
+Li Dong, Furu Wei, et al. 2020c. Oscar: Object-
+semantics aligned pre-training for vision-language
+tasks. In Computer Vision–ECCV 2020: 16th Euro-
+pean Conference, Glasgow, UK, August 23–28, 2020,
+Proceedings, Part XXX 16 , pages 121–137. Springer.Tsung-Yi Lin, Michael Maire, Serge Belongie, James
+Hays, Pietro Perona, Deva Ramanan, Piotr Dollár,
+and C Lawrence Zitnick. 2014. Microsoft COCO:
+Common objects in context. In Computer Vision –
+ECCV 2014 , pages 740–755. Springer International
+Publishing.
+Shilong Liu, Yaoyuan Liang, Feng Li, Shijia Huang,
+Hao Zhang, Hang Su, Jun Zhu, and Lei Zhang. 2022a.
+DQ-DETR: Dual query detection transformer for
+phrase extraction and grounding.
+Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Man-
+dar Joshi, Danqi Chen, Omer Levy, Mike Lewis,
+Luke Zettlemoyer, and Veselin Stoyanov. 2019.
+Roberta: A robustly optimized bert pretraining ap-
+proach. arXiv preprint arXiv:1907.11692 .
+Yongfei Liu, Chenfei Wu, Shao-Yen Tseng, Vasudev
+Lal, Xuming He, and Nan Duan. 2022b. KD-VLP:
+Improving end-to-end vision-and-language pretrain-
+ing with object knowledge distillation. In Findings
+of the Association for Computational Linguistics:
+NAACL 2022 , Stroudsburg, PA, USA. Association
+for Computational Linguistics.
+Ze Liu, Yutong Lin, Yue Cao, Han Hu, Yixuan Wei,
+Zheng Zhang, Stephen Lin, and Baining Guo. 2021.
+Swin transformer: Hierarchical vision transformer
+using shifted windows. In 2021 IEEE/CVF Interna-
+tional Conference on Computer Vision (ICCV) . IEEE.
+Lu, Batra, Parikh, and Lee. 2019. Vilbert: Pretrain-
+ing task-agnostic visiolinguistic representations for
+vision-and-language tasks. Adv. Neural Inf. Process.
+Syst.
+OpenAI. 2023. Gpt-4 technical report.
+Vicente Ordonez, Girish Kulkarni, and Tamara Berg.
+2011. Im2text: Describing images using 1 million
+captioned photographs. Advances in neural informa-
+tion processing systems , 24.
+Zhiliang Peng, Li Dong, Hangbo Bao, Qixiang Ye, and
+Furu Wei. 2022. Beit v2: Masked image model-
+ing with vector-quantized visual tokenizers. arXiv
+preprint arXiv:2208.06366 .
+Bryan A Plummer, Liwei Wang, Chris M Cervantes,
+Juan C Caicedo, Julia Hockenmaier, and Svetlana
+Lazebnik. 2015. Flickr30k entities: Collecting
+region-to-phrase correspondences for richer image-
+to-sentence models. In Proceedings of the IEEE
+international conference on computer vision , pages
+2641–2649.
+Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya
+Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sas-
+try, Amanda Askell, Pamela Mishkin, Jack Clark,
+et al. 2021. Learning transferable visual models
+from natural language supervision. In International
+Conference on Machine Learning , pages 8748–8763.
+PMLR.Alec Radford, Karthik Narasimhan, Tim Salimans, Ilya
+Sutskever, et al. 2018. Improving language under-
+standing by generative pre-training.
+Aditya Ramesh, Mikhail Pavlov, Gabriel Goh, Scott
+Gray, Chelsea V oss, Alec Radford, Mark Chen, and
+Ilya Sutskever. 2021. Zero-shot text-to-image gener-
+ation.
+Joseph Redmon, Santosh Divvala, Ross Girshick, and
+Ali Farhadi. 2016. You only look once: Unified,
+real-time object detection. In Proceedings of the
+IEEE conference on computer vision and pattern
+recognition , pages 779–788.
+Olga Russakovsky, Jia Deng, Hao Su, Jonathan Krause,
+Sanjeev Satheesh, Sean Ma, Zhiheng Huang, An-
+drej Karpathy, Aditya Khosla, Michael Bernstein,
+et al. 2015. Imagenet large scale visual recognition
+challenge. International journal of computer vision ,
+115:211–252.
+Victor Sanh, Lysandre Debut, Julien Chaumond, and
+Thomas Wolf. 2019. Distilbert, a distilled version
+of bert: smaller, faster, cheaper and lighter. arXiv
+preprint arXiv:1910.01108 .
+Christoph Schuhmann, Richard Vencu, Romain Beau-
+mont, Robert Kaczmarczyk, Clayton Mullis, Aarush
+Katta, Theo Coombes, Jenia Jitsev, and Aran Komat-
+suzaki. 2021. Laion-400m: Open dataset of clip-
+filtered 400 million image-text pairs. arXiv preprint
+arXiv:2111.02114 .
+Rico Sennrich, Barry Haddow, and Alexandra Birch.
+2015. Neural machine translation of rare words with
+subword units. arXiv preprint arXiv:1508.07909 .
+Piyush Sharma, Nan Ding, Sebastian Goodman, and
+Radu Soricut. 2018. Conceptual captions: A cleaned,
+hypernymed, image alt-text dataset for automatic im-
+age captioning. In Proceedings of the 56th Annual
+Meeting of the Association for Computational Lin-
+guistics (Volume 1: Long Papers) , pages 2556–2565.
+Amanpreet Singh, Ronghang Hu, Vedanuj Goswami,
+Guillaume Couairon, Wojciech Galuba, Marcus
+Rohrbach, and Douwe Kiela. 2022. Flava: A founda-
+tional language and vision alignment model. In Pro-
+ceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition , pages 15638–15650.
+Weijie Su, Xizhou Zhu, Yue Cao, Bin Li, Lewei Lu,
+Furu Wei, and Jifeng Dai. 2019. VL-BERT: Pre-
+training of generic Visual-Linguistic representations.
+Alane Suhr, Stephanie Zhou, Ally Zhang, Iris Zhang,
+Huajun Bai, and Yoav Artzi. 2018. A corpus for
+reasoning about natural language grounded in pho-
+tographs. arXiv preprint arXiv:1811.00491 .
+Hao Tan and Mohit Bansal. 2019. LXMERT: Learning
+Cross-Modality encoder representations from trans-
+formers.Bart Thomee, David A Shamma, Gerald Friedland, Ben-
+jamin Elizalde, Karl Ni, Douglas Poland, Damian
+Borth, and Li-Jia Li. 2016. Yfcc100m: The new
+data in multimedia research. Communications of the
+ACM , 59(2):64–73.
+Hugo Touvron, Matthieu Cord, Matthijs Douze, Fran-
+cisco Massa, Alexandre Sablayrolles, and Hervé
+Jégou. 2021. Training data-efficient image trans-
+formers & distillation through attention. In Inter-
+national Conference on Machine Learning , pages
+10347–10357. PMLR.
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob
+Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz
+Kaiser, and Illia Polosukhin. 2017. Attention is all
+you need. Advances in neural information processing
+systems , 30.
+Alex Wang, Amanpreet Singh, Julian Michael, Felix
+Hill, Omer Levy, and Samuel R Bowman. 2018.
+GLUE: A Multi-Task benchmark and analysis plat-
+form for natural language understanding.
+Jianfeng Wang, Zhengyuan Yang, Xiaowei Hu, Linjie
+Li, Kevin Lin, Zhe Gan, Zicheng Liu, Ce Liu, and
+Lijuan Wang. 2022a. Git: A generative image-to-text
+transformer for vision and language. arXiv preprint
+arXiv:2205.14100 .
+Jinpeng Wang, Pan Zhou, Mike Zheng Shou, and
+Shuicheng Yan. 2023a. Position-guided text prompt
+for vision-language pre-training. In Proceedings of
+the IEEE/CVF Conference on Computer Vision and
+Pattern Recognition , pages 23242–23251.
+Junke Wang, Dongdong Chen, Zuxuan Wu, Chong Luo,
+Luowei Zhou, Yucheng Zhao, Yujia Xie, Ce Liu, Yu-
+Gang Jiang, and Lu Yuan. 2022b. Omnivl: One foun-
+dation model for image-language and video-language
+tasks. arXiv preprint arXiv:2209.07526 .
+Peng Wang, Shijie Wang, Junyang Lin, Shuai Bai, Xi-
+aohuan Zhou, Jingren Zhou, Xinggang Wang, and
+Chang Zhou. 2023b. One-peace: Exploring one gen-
+eral representation model toward unlimited modali-
+ties. arXiv preprint arXiv:2305.11172 .
+Peng Wang, An Yang, Rui Men, Junyang Lin, Shuai
+Bai, Zhikang Li, Jianxin Ma, Chang Zhou, Jingren
+Zhou, and Hongxia Yang. 2022c. OFA: Unifying
+architectures, tasks, and modalities through a simple
+Sequence-to-Sequence learning framework.
+Wenhui Wang, Hangbo Bao, Li Dong, Johan
+Bjorck, Zhiliang Peng, Qiang Liu, Kriti Aggarwal,
+Owais Khan Mohammed, Saksham Singhal, Subhojit
+Som, et al. 2023c. Image as a foreign language: Beit
+pretraining for vision and vision-language tasks. In
+Proceedings of the IEEE/CVF Conference on Com-
+puter Vision and Pattern Recognition , pages 19175–
+19186.
+Zirui Wang, Jiahui Yu, Adams Wei Yu, Zihang Dai, Yu-
+lia Tsvetkov, and Yuan Cao. 2021. SimVLM: Simple
+visual language model pretraining with weak super-
+vision.Yonghui Wu, Mike Schuster, Zhifeng Chen, Quoc V Le,
+Mohammad Norouzi, Wolfgang Macherey, Maxim
+Krikun, Yuan Cao, Qin Gao, Klaus Macherey, et al.
+2016. Google’s neural machine translation system:
+Bridging the gap between human and machine trans-
+lation. arXiv preprint arXiv:1609.08144 .
+Haiyang Xu, Ming Yan, Chenliang Li, Bin Bi, Song-
+fang Huang, Wenming Xiao, and Fei Huang. 2021.
+E2e-vlp: end-to-end vision-language pre-training
+enhanced by visual learning. arXiv preprint
+arXiv:2106.01804 .
+Xiao Xu, Chenfei Wu, Shachar Rosenman, Va-
+sudev Lal, Wanxiang Che, and Nan Duan. 2022.
+BridgeTower: Building bridges between encoders
+in Vision-Language representation learning.
+Jianwei Yang, Chunyuan Li, Pengchuan Zhang, Bin
+Xiao, Ce Liu, Lu Yuan, and Jianfeng Gao. 2022a.
+Unified contrastive learning in image-text-label space.
+In2022 IEEE/CVF Conference on Computer Vision
+and Pattern Recognition (CVPR) . IEEE.
+Zhengyuan Yang, Zhe Gan, Jianfeng Wang, Xiaowei
+Hu, Faisal Ahmed, Zicheng Liu, Yumao Lu, and
+Lijuan Wang. 2022b. UniTAB: Unifying text and
+box outputs for grounded Vision-Language modeling.
+InComputer Vision – ECCV 2022 , pages 521–539.
+Springer Nature Switzerland.
+Jiahui Yu, Zirui Wang, Vijay Vasudevan, Legg Ye-
+ung, Mojtaba Seyedhosseini, and Yonghui Wu. 2022.
+CoCa: Contrastive captioners are Image-Text foun-
+dation models.
+Licheng Yu, Zhe Lin, Xiaohui Shen, Jimei Yang, Xin Lu,
+Mohit Bansal, and Tamara L. Berg. 2018. Mattnet:
+Modular attention network for referring expression
+comprehension. CoRR , abs/1801.08186.
+Lu Yuan, Dongdong Chen, Yi-Ling Chen, Noel Codella,
+Xiyang Dai, Jianfeng Gao, Houdong Hu, Xuedong
+Huang, Boxin Li, Chunyuan Li, Ce Liu, Mengchen
+Liu, Zicheng Liu, Yumao Lu, Yu Shi, Lijuan Wang,
+Jianfeng Wang, Bin Xiao, Zhen Xiao, Jianwei Yang,
+Michael Zeng, Luowei Zhou, and Pengchuan Zhang.
+2021. Florence: A new foundation model for com-
+puter vision.
+Rowan Zellers, Yonatan Bisk, Ali Farhadi, and Yejin
+Choi. 2018. From recognition to cognition: Visual
+commonsense reasoning.
+Yan Zeng, Xinsong Zhang, Hang Li, Jiawei Wang,
+Jipeng Zhang, and Wangchunshu Zhou. 2022. X2-
+VLM: All-In-One pre-trained model for Vision-
+Language tasks.
+Xiaohua Zhai, Xiao Wang, Basil Mustafa, Andreas
+Steiner, Daniel Keysers, Alexander Kolesnikov, and
+Lucas Beyer. 2022. Lit: Zero-shot transfer with
+locked-image text tuning. In Proceedings of the
+IEEE/CVF Conference on Computer Vision and Pat-
+tern Recognition , pages 18123–18133.Pengchuan Zhang, Xiujun Li, Xiaowei Hu, Jianwei
+Yang, Lei Zhang, Lijuan Wang, Yejin Choi, and Jian-
+feng Gao. 2021. Vinvl: Revisiting visual representa-
+tions in vision-language models. In Proceedings of
+the IEEE/CVF Conference on Computer Vision and
+Pattern Recognition , pages 5579–5588.
+Yukun Zhu, Ryan Kiros, Rich Zemel, Ruslan Salakhut-
+dinov, Raquel Urtasun, Antonio Torralba, and Sanja
+Fidler. 2015. Aligning books and movies: Towards
+story-like visual explanations by watching movies
+and reading books. In Proceedings of the IEEE in-
+ternational conference on computer vision , pages
+19–27.

@@ -1,0 +1,300 @@
+arXiv:2302.05016v2  [cs.CV]  15 Apr 2023IS MULTIMODAL VISION SUPERVISION BENEFICIAL TO
+LANGUAGE ?
+Avinash Madasu
+Department of Computer Science
+UNC Chapel Hill, USA
+avinashmadasu17@gmail.comVasudev Lal
+Cognitive Computing Research
+Intel Labs, USA
+vasudev.lal@intel.com
+ABSTRACT
+Vision (image and video) - Language (VL) pre-training is the recent popular
+paradigm that achieved state-of-the-art results on multi- modal tasks like image-
+retrieval, video-retrieval, visual question answering et c. These models are trained
+in an unsupervised way and greatly beneﬁt from the complemen tary modality su-
+pervision. In this paper, we explore if the language represe ntations trained using
+vision supervision perform better than vanilla language re presentations on Natu-
+ral Language Understanding and commonsense reasoning benc hmarks. We ex-
+periment with a diverse set of image-text models such as ALBE F, BLIP, METER
+and video-text models like ALPRO, Frozen-in-Time (FiT), VI OLET. We com-
+pare the performance of language representations of stand- alone text encoders
+of these models to the language representations of text enco ders learnt through
+vision supervision. Our experiments suggest that vanilla l anguage representa-
+tions show superior performance on most of the tasks. These r esults shed light
+on the current drawbacks of the vision-language models. The code is available at
+https://github.com/avinashsai/MML
+1 I NTRODUCTION
+Vision-language (VL) pre-training Radford et al. (2021 );Li et al. (2021 ;2022b );Bain et al. (2021 );
+Fu et al. (2021 ) has shown tremendous success in the areas of image-text ret rieval Li et al. (2021 ;
+2022b ), visual question answering Wang et al. (2021 );Dou et al. (2022 ), video retrieval Bain et al.
+(2021 );Fu et al. (2021 );Madasu et al. (2022 ;2023 ). These models beneﬁt from the mutual super-
+vision of vision and language leading to the superior result s on multi-modal tasks. So, the natural
+question arises: “Are vision supervised language representations beneﬁcia l compared to vanilla lan-
+guage representations on Natural Language Understanding ( NLU) tasks?” To understand this, we
+conduct a study comparing the language representations tra ined using only the text to the language
+representations trained using vision supervision. More sp eciﬁcally, we compare the performance of
+the text encoders used in vision-language models to the vani lla pre-trained text encoders.
+Few works Iki & Aizawa (2021 );Singh et al. (2022 ) evaluated the performance of vision-language
+and vanilla language models on GLUE. However, there exists a data discrepancy as these models are
+pre-trained on different domains of data making the compari sons unfair. To overcome this, we pre-
+train all the vanilla language models with the text captions used in multi-modal pre-training while
+keeping the identical training setting. Therefore, the onl y difference in training between vision-
+language and vanilla language models is the use of vision dat a.
+For our experiments we use a diverse set of image-text models : ALBEF Li et al. (2021 ), BLIP
+Li et al. (2022b ) and METER Dou et al. (2022 ) and video-text models: ALPRO Li et al. (2022a ),
+Frozen-in-time (FiT) Bain et al. (2021 ) and VIOLET Fu et al. (2021 ). We evaluate these models on
+NLU benchmarks GLUE Wang et al. (2018 ), Superglue Wang et al. (2019 ) and Common sense rea-
+soning datasets such as SocialIQA Sap et al. (2019 ), CosmosQA Huang et al. (2019 ), WinoGrande
+Sakaguchi et al. (2021 ), CODAH Chen et al. (2019 ) and HellaSwag Zellers et al. (2019 ).
+Our experiments show that (i) vision supervised language re presentations under perform compared
+to vanilla language representations on most of the Natural L anguage Understanding tasks like Nat-
+1Table 1: Comparison among different image-text and video-t ext models in-terms of pre-training
+data, architecture of the text encoders and size of the text e ncoder. CC denotes Conceptual cap-
+tions Bain et al. (2021 ), SBU denotes SBU captions Ordonez et al. (2011 ) and VG represents visual
+genome Krishna et al. (2017 ).
+Type Model Pre-training Data Text Encoder Num. layers
+Image-textALBEF CC12M + COCO + SBU + VG (14M) BERT 6
+BLIP CC12M + COCO + SBU + VG (14M) BERT 12
+METER CC3M + SBU + VG (4M) RoBERTa 6
+Video-textALPRO CC3M + WebVid-2M (5M) BERT 6
+FiT CC3M + WebVid-2M (5M) DistilBERT 6
+VIOLET YT180M + CC3M + WebVid-2M (11M) BERT 12
+ural Language Inference (NLI), sentence similarity, readi ng comprehension, linguistic probe and
+textual entailment. (ii) A similar trend is observed for com monsense reasoning benchmarks.
+2 R ELATED WORK
+Over the recent years there has been a tremendous progress in training vision and language together
+using large-scale multi-modal data. Li et al. (2019 );Chen et al. ;Li et al. (2020 ). These models
+combine both the modalities into a single input and are train ed using objectives similar to masked
+language modelling. Another line of work Radford et al. (2021 );Li et al. (2021 ;2022b );Bain et al.
+(2021 ) explore dual stream architectures in which there is a separ ate encoder for each of the modal-
+ities and the ﬁnal representations are minimized using cont rastive loss.
+Natural Language Understanding involves several tasks suc h as text classiﬁcation Wang & Manning
+(2012 );Madasu & Rao (2019 ), sentence similarity Mueller & Thyagarajan (2016 ), Natural Lan-
+guage Inference Williams et al. (2018 ) etc. However to evaluate the capability of models towards a
+broad range of NLU tasks, benchmarks such as GLUE Wang et al. (2018 ), Superglue Wang et al.
+(2019 ) are introduced. Since then, these benchmarks are being use d to comprehensively evaluate
+the performance of language models.
+3 E XPERIMENTS
+3.1 M ODELS
+We experiment with a diverse set of image-text and video-tex t models. These models differ in the
+type of pre-training data used, in the architecture of the te xt encoder and in the sizes the text encoder.
+The comparison among the models is shown in the table 1.
+3.1.1 ALBEF
+ALBEF Li et al. (2021 ) is an image-text model pretrained on conceptual captions 1 2M (CC12M)
+Sharma et al. (2018 ), COCO Lin et al. (2014 ), SBU captions Ordonez et al. (2011 ) and visual
+genome Krishna et al. (2017 ). It’s text encoder has a pre-trained BERT Kenton & Toutanova (2019 )
+architecture with six transformer encoder layers.
+3.1.2 BLIP
+BLIP Li et al. (2022a ) is proposed as an extension to ALBEF model pretrained using the same data
+albeit with a large text encoder. It’s text encoder has the sa me conﬁguration as pre-trained BERT.
+23.1.3 METER
+METER Dou et al. (2022 ) is an image-text model pretrained on conceptual captions 3 M (CC3M),
+SBU captions and visual genome. Pre-trained RoBERTa Liu et al. (2019 ) with six transformer
+encoder layers is used as the text encoder.
+3.1.4 ALPRO
+ALPRO Li et al. (2021 ) is a video-text model whose text encoder has a pre-trained B ERT architec-
+ture with six transformer encoders. It is pre-trained on a co mbined data of conceptual captions 3M
+(CC3M) and WebVid-2M Bain et al. (2021 ).
+3.1.5 F ROZEN -IN-TIME (FIT)
+Frozen-in-time Bain et al. (2021 ) is a dual stream transformer model pre-trained on both imag e
+data conceptual captions 3M (CC3M) and video data WebVid-2M . DistillBERT Sanh et al. (2019 )
+is used as the text encoder.
+3.1.6 VIOLET
+VIOLET Fu et al. (2021 ) is a multi-modal transformer model pre-trained end-to-en d on YouTube
+180M (YT180M) Zellers et al. (2021 ), conceptual captions 3M (CC3M) and WebVid-2M. The text
+encoder follows the BERT architecture.
+3.2 D ATASETS
+For our analysis, we use GLUE, Superglue and commonsense rea soning datasets such as SocialQA,
+CosmosQA, WinoGrande, CODAH and HellaSwag. For all these da tasets, we evaluate the models
+on the dev data.
+3.3 I MPLEMENTATION
+For fair comparison between the vision supervised text mode ls and vanilla text models, we pre-train
+the vanilla text models with the text captions from the datas ets used for large scale training of image-
+text and video-text models. Now, the only difference betwee n these models is the use of vision data.
+We pre-train vanilla text models in the exact setup as vision -language models. We then ﬁne-tune
+both the vision supervised text models and vanilla text mode ls on downstream tasks. For GLUE, the
+maximum sentence length used is 200 and the models are traine d for 5 epochs. In case of superglue,
+250 is the maximum sentence length and the model are trained f or 25 epochs. For commonsense
+reasoning, the models are trained for 10 epochs and 300 is the maximum sentence length. Unless
+otherwise stated, the results reported are the average of 5 r uns.
+4 R ESULTS
+Table 2shows the results on GLUE benchmark. From the tables, it is ev ident that vanilla language
+representations show superior performance compared to vis ion supervised language representations
+on most of the tasks across all the models. The drop in perform ance is signiﬁcant for NLI tasks
+like MNLI and MNLI-mismatched (MNLI-mis). A similar trend i s observed for sentence similarity
+(QQP), sentiment classiﬁcation (SST2), reading comprehen sion (MRPC), linguistic probe (CoLA)
+and textual entailment (RTE). However, we see a huge improve ment in performance for the Wino-
+grad NLI (WNLI) task.
+Table 3illustrates the results on superglue benchmark. From the ta ble, we observe that vision
+supervised language representations under perform compar ed to vanilla language representations.
+For the tasks question answering (BoolQ), word in context (W iC), discourse (CB) we see a huge
+drop in performance. However, we see a signiﬁcant improveme nt in performance for the casual
+reasoning (COPA) task. It is worth-noting that the performa nce is same for both the vanilla and
+vision supervised language representations on winograd sc hema challenge (WSC).
+3Table 2: Results on GLUE benchmark. MNLI-mis refers to the ta sk MNLI mismatched and WNLI
+denotes the Winograd Schema Challenge. We see that language representations learnt through vision
+supervision under performs compared to vanilla language re presentations on all the tasks except
+WNLI.
+Model Type MNLI MNLI-mis QQP SST2 MRPC CoLA RTE WNLI
+ALBEFText 82.77 82.68 90.54 91.44 72.81 81.50 58.12 46.01
+Image-text 61.38 61.68 79.02 80.39 66.49 69.13 50.30 56.34
+BLIPText 83.04 82.70 90.54 91.44 72.81 81.50 58.12 46.01
+Image-text 61.38 61.68 79.02 80.39 66.49 69.13 50.30 56.34
+METERText 86.59 86.15 90.99 93.27 76.06 82.58 64.02 56.34
+Image-text 31.82 31.82 77.91 81.12 66.49 69.13 47.29 56.34
+ALPROText 82.96 82.81 90.64 92.05 70.96 79.93 60.41 45.07
+Video-text 62.53 63.26 79.35 80.96 66.49 69.13 54.39 56.34
+FiTText 79.10 80.23 89.51 52.03 72.58 69.13 57.28 48.83
+Video-text 59.54 59.45 79.01 52.18 66.78 69.13 48.01 56.34
+VIOLETText 83.19 83.59 90.68 92.74 71.92 81.66 59.93 52.58
+Video-text 61.38 61.68 79.02 80.39 66.49 69.13 50.30 56.34
+Table 3: Results on Superglue benchmark. WiC represents Wor d-in-Context, CB represents Com-
+mitmentBank, COPA denotes Choice of Plausible Alternative s and WSC means The Winograd
+Schema Challenge.
+Model Type BoolQ WiC CB COPA WSC
+ALBEFText 70.41 63.13 76.79 48.00 63.46
+Image-text 63.30 55.02 63.93 51.60 63.46
+BLIPText 70.41 63.13 76.43 48.00 63.46
+Image-text 63.30 55.02 63.93 51.60 63.46
+METERText 72.40 66.11 75.00 46.80 63.46
+Image-text 66.87 53.98 69.64 50.80 63.46
+ALPROText 71.16 67.18 76.79 42.20 63.46
+Video-text 65.17 53.17 62.50 50.60 62.50
+FiTText 68.91 62.38 69.29 44.80 63.46
+Video-text 64.69 53.20 70.71 53.80 63.46
+VIOLETText 63.85 57.37 66.07 56.00 63.46
+Video-text 63.44 54.11 63.93 52.60 63.46
+Table 4: Results on Commonsense reasoning tasks.
+Model Type SocialQA CosmosQA WinoGrande CODAH HellaSwag
+ALBEFText 40.50 26.45 53.12 25.72 25.04
+Image-text 33.47 25.24 49.57 25.72 24.48
+BLIPText 52.27 25.72 56.88 26.02 25.24
+Image-text 33.47 25.24 49.57 25.72 24.48
+METERText 58.39 31.32 59.59 24.40 25.04
+Image-text 33.47 25.00 49.57 25.72 24.48
+ALPROText 49.90 27.45 56.56 24.10 24.89
+Video-text 33.96 25.70 50.28 25.72 24.48
+FiTText 45.46 30.87 56.75 25.12 26.54
+Video-text 33.35 25.77 50.33 24.52 24.59
+VIOLETText 43.36 33.17 57.09 24.28 25.27
+Video-text 33.47 25.24 49.57 25.72 24.48
+4Table 4demonstrates the results on commonsense reasoning dataset s. As shown in the table, the
+performance of vanilla language representations surpass v ision supervised language representations.
+There is a notable difference in performance on SocialQA, Co smosQA, WinoGrande and HellaSwag
+commonsense tasks. However for the CODA dataset, we observe vision supervised language repre-
+sentations outperform vanilla language representations f or METER, ALPRO and VIOLET models.
+5 CONCLUSION AND FUTURE DIRECTIONS
+In this paper we comprehensively evaluated if the vision sup ervised language representations are
+beneﬁcial to the language. We experimented with three image -text models ALBEF, BLIP, METER
+and three video-text models ALPRO, FiT, VIOLET on NLU benchm arks GLUE, superglue and
+commonsense reasoning tasks. Our experiments showed that v anilla language representations sig-
+niﬁcantly outperform vision supervised language represen tations on most of the tasks. We believe
+these ﬁndings can shed light on the future directions to impr ove the vision-language pre-training
+that is beneﬁcial to understanding the language.
+REFERENCES
+Max Bain, Arsha Nagrani, G¨ ul Varol, and Andrew Zisserman. F rozen in time: A joint video and
+image encoder for end-to-end retrieval. In Proceedings of the IEEE/CVF International Conference
+on Computer Vision , pp. 1728–1738, 2021.
+Michael Chen, Mike D’Arcy, Alisa Liu, Jared Fernandez, and D oug Downey. Codah: An adver-
+sarially authored question-answer dataset for common sens e.arXiv preprint arXiv:1904.04365 ,
+2019.
+Yen-Chun Chen, Linjie Li, Licheng Yu, Ahmed El Kholy, Faisal Ahmed, Zhe Gan, Yu Cheng, and
+Jingjing Liu. Uniter: Universal image-text representatio n learning.
+Zi-Yi Dou, Yichong Xu, Zhe Gan, Jianfeng Wang, Shuohang Wang , Lijuan Wang, Chenguang Zhu,
+Pengchuan Zhang, Lu Yuan, Nanyun Peng, et al. An empirical st udy of training end-to-end vision-
+and-language transformers. In Proceedings of the IEEE/CVF Conference on Computer Vision a nd
+Pattern Recognition , pp. 18166–18176, 2022.
+Tsu-Jui Fu, Linjie Li, Zhe Gan, Kevin Lin, William Yang Wang, Lijuan Wang, and Zicheng Liu.
+Violet: End-to-end video-language transformers with mask ed visual-token modeling. 2021.
+Lifu Huang, Ronan Le Bras, Chandra Bhagavatula, and Yejin Ch oi. Cosmos qa: Machine reading
+comprehension with contextual commonsense reasoning. In Proceedings of the 2019 Conference
+on Empirical Methods in Natural Language Processing and the 9th International Joint Confer-
+ence on Natural Language Processing (EMNLP-IJCNLP) , pp. 2391–2401, 2019.
+Taichi Iki and Akiko Aizawa. Effect of visual extensions on n atural language understanding in
+vision-and-language models. In Proceedings of the 2021 Conference on Empirical Methods in
+Natural Language Processing , pp. 2189–2196, 2021.
+Jacob Devlin Ming-Wei Chang Kenton and Lee Kristina Toutano va. Bert: Pre-training of deep
+bidirectional transformers for language understanding. I nProceedings of NAACL-HLT , pp. 4171–
+4186, 2019.
+Ranjay Krishna, Yuke Zhu, Oliver Groth, Justin Johnson, Ken ji Hata, Joshua Kravitz, Stephanie
+Chen, Yannis Kalantidis, Li-Jia Li, David A Shamma, et al. Vi sual genome: Connecting lan-
+guage and vision using crowdsourced dense image annotation s.International journal of computer
+vision , 123:32–73, 2017.
+Dongxu Li, Junnan Li, Hongdong Li, Juan Carlos Niebles, and S teven CH Hoi. Align and prompt:
+Video-and-language pre-training with entity prompts. In Proceedings of the IEEE/CVF Confer-
+ence on Computer Vision and Pattern Recognition , pp. 4953–4963, 2022a.
+Junnan Li, Ramprasaath Selvaraju, Akhilesh Gotmare, Shaﬁq Joty, Caiming Xiong, and Steven
+Chu Hong Hoi. Align before fuse: Vision and language represe ntation learning with momentum
+distillation. Advances in neural information processing systems , 34:9694–9705, 2021.
+5Junnan Li, Dongxu Li, Caiming Xiong, and Steven CH Hoi. Blip: Bootstrapping language-image
+pre-training for uniﬁed vision-language understanding an d generation. 2022b.
+Liunian Harold Li, Mark Yatskar, Da Yin, Cho-Jui Hsieh, and K ai-Wei Chang. Visualbert: Asimple
+and performant baseline for vision and language. arXiv preprint arXiv:1908.03557 , 2019.
+Xiujun Li, Xi Yin, Chunyuan Li, Pengchuan Zhang, Xiaowei Hu, Lei Zhang, Lijuan Wang, Houdong
+Hu, Li Dong, Furu Wei, et al. Oscar: Object-semantics aligne d pre-training for vision-language
+tasks. In Computer Vision–ECCV 2020: 16th European Conference, Glas gow, UK, August 23–28,
+2020, Proceedings, Part XXX 16 , pp. 121–137. Springer, 2020.
+Tsung-Yi Lin, Michael Maire, Serge Belongie, James Hays, Pi etro Perona, Deva Ramanan, Piotr
+Doll´ ar, and C Lawrence Zitnick. Microsoft coco: Common obj ects in context. In Computer
+Vision–ECCV 2014: 13th European Conference, Zurich, Switz erland, September 6-12, 2014,
+Proceedings, Part V 13 , pp. 740–755. Springer, 2014.
+Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Mandar Joshi, Danqi Chen, Omer Levy, Mike
+Lewis, Luke Zettlemoyer, and Veselin Stoyanov. Roberta: A r obustly optimized bert pretraining
+approach. arXiv preprint arXiv:1907.11692 , 2019.
+Avinash Madasu and Vijjini Anvesh Rao. Sequential learning of convolutional features for effective
+text classiﬁcation. In Proceedings of the 2019 Conference on Empirical Methods in N atural Lan-
+guage Processing and the 9th International Joint Conferenc e on Natural Language Processing
+(EMNLP-IJCNLP) , pp. 5658–5667, 2019.
+Avinash Madasu, Junier Oliva, and Gedas Bertasius. Learnin g to retrieve videos by asking questions.
+InProceedings of the 30th ACM International Conference on Mul timedia , pp. 356–365, 2022.
+Avinash Madasu, Estelle Aﬂalo, Gabriela Ben Melech Stan, Sh ao-Yen Tseng, Gedas Bertasius, and
+Vasudev Lal. Improving video retrieval using multilingual knowledge transfer. In Advances in
+Information Retrieval: 45th European Conference on Inform ation Retrieval, ECIR 2023, Dublin,
+Ireland, April 2–6, 2023, Proceedings, Part I , pp. 669–684. Springer, 2023.
+Jonas Mueller and Aditya Thyagarajan. Siamese recurrent ar chitectures for learning sentence simi-
+larity. In Proceedings of the AAAI conference on artiﬁcial intelligen ce, volume 30, 2016.
+Vicente Ordonez, Girish Kulkarni, and Tamara Berg. Im2text : Describing images using 1 million
+captioned photographs. Advances in neural information processing systems , 24, 2011.
+Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, G abriel Goh, Sandhini Agarwal,
+Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, e t al. Learning transferable visual
+models from natural language supervision. In International Conference on Machine Learning ,
+pp. 8748–8763. PMLR, 2021.
+Keisuke Sakaguchi, Ronan Le Bras, Chandra Bhagavatula, and Yejin Choi. Winogrande: An adver-
+sarial winograd schema challenge at scale. Communications of the ACM , 64(9):99–106, 2021.
+Victor Sanh, Lysandre Debut, Julien Chaumond, and Thomas Wo lf. Distilbert, a distilled version of
+bert: smaller, faster, cheaper and lighter. arXiv preprint arXiv:1910.01108 , 2019.
+Maarten Sap, Hannah Rashkin, Derek Chen, Ronan Le Bras, and Y ejin Choi. Social iqa: Common-
+sense reasoning about social interactions. In Proceedings of the 2019 Conference on Empirical
+Methods in Natural Language Processing and the 9th Internat ional Joint Conference on Natural
+Language Processing (EMNLP-IJCNLP) , pp. 4463–4473, 2019.
+Piyush Sharma, Nan Ding, Sebastian Goodman, and Radu Soricu t. Conceptual captions: A cleaned,
+hypernymed, image alt-text dataset for automatic image cap tioning. In Proceedings of the 56th
+Annual Meeting of the Association for Computational Lingui stics (Volume 1: Long Papers) , pp.
+2556–2565, 2018.
+Amanpreet Singh, Ronghang Hu, Vedanuj Goswami, Guillaume C ouairon, Wojciech Galuba, Mar-
+cus Rohrbach, and Douwe Kiela. Flava: A foundational langua ge and vision alignment model.
+InProceedings of the IEEE/CVF Conference on Computer Vision a nd Pattern Recognition , pp.
+15638–15650, 2022.
+6Alex Wang, Amanpreet Singh, Julian Michael, Felix Hill, Ome r Levy, and Samuel R Bowman.
+Glue: A multi-task benchmark and analysis platform for natu ral language understanding. In
+International Conference on Learning Representations , 2018.
+Alex Wang, Yada Pruksachatkun, Nikita Nangia, Amanpreet Si ngh, Julian Michael, Felix Hill, Omer
+Levy, and Samuel Bowman. Superglue: A stickier benchmark fo r general-purpose language
+understanding systems. Advances in neural information processing systems , 32, 2019.
+Sida I Wang and Christopher D Manning. Baselines and bigrams : Simple, good sentiment and topic
+classiﬁcation. In Proceedings of the 50th Annual Meeting of the Association fo r Computational
+Linguistics (Volume 2: Short Papers) , pp. 90–94, 2012.
+Zirui Wang, Jiahui Yu, Adams Wei Yu, Zihang Dai, Yulia Tsvetk ov, and Yuan Cao. Simvlm: Sim-
+ple visual language model pretraining with weak supervisio n. In International Conference on
+Learning Representations , 2021.
+Adina Williams, Nikita Nangia, and Samuel Bowman. A broad-c overage challenge corpus for sen-
+tence understanding through inference. In Proceedings of the 2018 Conference of the North Amer-
+ican Chapter of the Association for Computational Linguist ics: Human Language Technologies,
+Volume 1 (Long Papers) , pp. 1112–1122, 2018.
+Rowan Zellers, Ari Holtzman, Yonatan Bisk, Ali Farhadi, and Yejin Choi. Hellaswag: Can a ma-
+chine really ﬁnish your sentence? In Proceedings of the 57th Annual Meeting of the Association
+for Computational Linguistics , pp. 4791–4800, 2019.
+Rowan Zellers, Ximing Lu, Jack Hessel, Youngjae Yu, Jae Sung Park, Jize Cao, Ali Farhadi, and
+Yejin Choi. Merlot: Multimodal neural script knowledge mod els.Advances in Neural Information
+Processing Systems , 34:23634–23651, 2021.
+7

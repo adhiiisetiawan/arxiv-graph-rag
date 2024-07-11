@@ -1,0 +1,1234 @@
+Language Features Matter:
+Effective Language Representations for Vision-Language Tasks
+Andrea Burns Reuben Tan Kate Saenko Stan Sclaroff Bryan A. Plummer
+Boston University
+faburns4, rxtan, saenko, sclaroff, bplum g@bu.edu
+Abstract
+Shouldn’t language and vision features be treated
+equally in vision-language (VL) tasks? Many VL ap-
+proaches treat the language component as an afterthought,
+using simple language models that are either built upon
+ﬁxed word embeddings trained on text-only data or are
+learned from scratch. We believe that language features
+deserve more attention, and conduct experiments which
+compare different word embeddings, language models, and
+embedding augmentation steps on ﬁve common VL tasks:
+image-sentence retrieval, image captioning, visual ques-
+tion answering, phrase grounding, and text-to-clip retrieval.
+Our experiments provide some striking results; an aver-
+age embedding language model outperforms an LSTM on
+retrieval-style tasks; state-of-the-art representations such
+as BERT perform relatively poorly on vision-language
+tasks. From this comprehensive set of experiments we
+propose a set of best practices for incorporating the lan-
+guage component of VL tasks. To further elevate language
+features, we also show that knowledge in vision-language
+problems can be transferred across tasks to gain perfor-
+mance with multi-task training. This multi-task training
+is applied to a new Graph Oriented Vision-Language Em-
+bedding (GrOVLE), which we adapt from Word2Vec using
+WordNet and an original visual-language graph built from
+Visual Genome, providing a ready-to-use vision-language
+embedding: http://ai.bu.edu/grovle .
+1. Introduction
+In recent years many methods have been proposed for
+vision-language tasks such as image and video caption-
+ing [13, 30, 55, 56, 61], multimodal retrieval [19, 27, 23,
+57, 41, 54, 60], phrase grounding [47, 22, 45, 49], and vi-
+sual question answering [15, 2, 65, 52, 63]. Language rep-
+resentations for these models tend to be obtained by av-
+eraging word embeddings ( e.g. [57, 45, 44, 27]), feeding
+features representing each word into a LSTM ( e.g. [49, 61,
+60]), and using word-level or phrase-level attention mod-
+els (e.g. [1, 12, 37, 5, 33]). The word embeddings used in
+Figure 1. How should language features be constructed for a
+vision-language task? We provide a side by side comparison of
+how word-level and sentence-level embeddings, simple and more
+complex language models, and ﬁne-tuning and post-processing
+vectors impact performance.
+these tasks include a simple one-hot encoding of each word
+in a vocabulary ( e.g. [15, 56, 57]), pretrained dense vec-
+tor representations like Word2Vec [39] or GloVe [42], and
+Fisher vectors built on top of these dense representations
+(e.g. [27, 44, 57]). Although there are more modern embed-
+dings such as FastText [4], ELMo [43] and BERT [10] that
+have shown signiﬁcant performance improvements on lan-
+guage tasks such as sentiment analysis and question answer-
+ing, many vision-language approaches still use the more
+dated feature representations.
+While there are isolated cases where these language
+model and feature choices are compared for the same task
+model ( e.g. [57, 20]), to our knowledge there exists no com-
+prehensive comparison. To address this neglect of language
+feature exploration, we provide an all-inclusive experi-
+mental survey of embedding, language model, and train-
+ing choice. We perform experiments using from-scratch,
+Word2Vec [39], WordNet retroﬁtted Word2Vec [14], Fast-
+Text [4], Visual Word2Vec [29], HGLMM (300-D, 6K-
+D) [27], InferSent [8], and BERT [10] representations in
+addition to a new embedding, GrOVLE, on ﬁve vision-
+language tasks: image-sentence retrieval, visual question
+answering, phrase grounding, image captioning, and text-
+to-clip retrieval.
+Our goal is to provide insight for vision-language appli-
+1arXiv:1908.06327v1  [cs.CV]  17 Aug 2019cations based on extensive experiments varying choices il-
+lustrated in Figure 1. Our ﬁndings show how to make these
+choices to take advantage of language features in vision-
+language work. For example, we ﬁnd that using an Average
+Embedding language model, which ignores word ordering,
+tends to perform better than a LSTM. This suggests that the
+LSTM overﬁts to the task it is trained on. However, when
+training a word embedding from scratch a LSTM performs
+best. This result is mostly likely a product of the LSTM
+learning to predict the next word given previous words,
+learning context. Pretrained word vectors likely already
+provide some semblance of this context information since
+that is how they are typically trained. The take-aways from
+all experimental results are summarized in Figure 2.
+Relying on word embeddings trained solely on large text
+corpora can have important consequences. For example, in
+Word2Vec the words “boy” and “girl” have higher cosine
+similarity than either have to the word “child.” While this is
+a subtle difference, it can impact tasks such as image cap-
+tioning where “girl” can be replaced by “child” when de-
+scribing a visual scene, but not by “boy.” These nuances
+are not well captured when using text-only information.
+To address this, we introduce the Graph Oriented Vision-
+Language Embedding, GrOVLE, which has been learned
+for vision-language tasks speciﬁcally.
+When building GrOVLE, we take into account the differ-
+ences in the relationships between words when used to de-
+scribe visual data. We introduce a new relational graph by
+extracting semantic relationships between words using the
+Visual Genome dataset [31], which is annotated with dense
+descriptions of entities, their attributes, and their relation-
+ships to other entities within an image. We use both Word-
+Net and Visual Genome graphs to adapt Word2Vec, through
+the retroﬁtting process deﬁned by Faruqui et al. [14].
+Finally, in addition to viewing embedding performance
+for each individual task, we asked: Can an embedding gen-
+eralize across vision-language tasks? Inspired by multi-task
+training strategies like PackNet [38], we train the GrOVLE
+embedding on all the vision-language tasks in our exper-
+iments. The word representation becomes more powerful
+with task speciﬁc knowledge, as the multi-task GrOVLE
+ultimately outperforms its single-task trained version, be-
+coming a leading embedding amongst the ﬁve tasks. Note
+that unlike PackNet, GrOVLE operates directly on the word
+embeddings rather than model weights.
+Below we summarize our primary contributions:
+Comprehensive experiments exhaustively comparing
+different word representations, language models, and
+pretraining and adaptation steps across ﬁve common
+vision-language tasks, providing best practices for fu-
+ture work. See Figure 2 for a summary of our ﬁndings.
+GrOVLE, a publicly available word embedding which
+Figure 2. Average rank is deﬁned using each tasks’ best perform-
+ing model. Variance is deﬁned as the average difference between
+the best and worst performance of the ﬁne-tuned language model
+options ( e.g. Average Embedding + ft, Self-Attention + ft, LSTM
++ ft). Note that variance rank is listed from lowest to highest, e.g.
+from-scratch embeddings have highest variance. If the top embed-
+ding per task is a tie, both are provided in the right most column.
+For the tasks InferSent and BERT operate on, they would land be-
+tween 7th and 8th place for average rank; average variance is N/A.
+Note that average variance is not provided for multi-task trained
+GrOVLE as it was created with the best model for each task.
+has been specially trained for vision-language tasks1.
+Key insight into the transferability of word embed-
+dings across the ﬁve vision-language tasks through the
+use of multi-task training.
+2. Related Work
+To the best of our knowledge, the effect of pretrained
+embeddings in VL tasks has never before been system-
+atically compared. Visual information has been used in
+limited ways to improve word embeddings such as sim-
+ply concatenating visual features [25] or focusing on ab-
+stract scenes [29]. Lazaridou et al. [32] focuses on leverag-
+ing ﬁrst order semantic relationships by encouraging align-
+ment between the visual and language embeddings for a
+predeﬁned set of nouns describing objects. Word embed-
+dings have also been improved by including additional con-
+straints on the learning process [64] or as a post-processing
+step [14]. These models focus on improving some general
+sense of word similarity. GrOVLE is different in that it
+is directly optimized to work well on a variety of vision-
+language tasks. We focus on how 10 representations com-
+pare amongst model and training choices, some of which
+are considered state-of-the-art for language tasks such as
+the recently introduced BERT [10].
+Several vision-language approaches have also tried to
+improve their language model, rather than the word em-
+beddings, as a way to improve performance. These have
+included building Fisher vectors on top of pretrained word
+embeddings [27, 34], constraining a coarse-to-ﬁne word or-
+dering [11, 54], or performing co-reference resolution to
+1http://ai.bu.edu/grovleFigure 3. The language model variants used in our experiments
+include: mean pooling of embeddings (MP) which is then passed
+to fully connected layers (FC), a LSTM fed a single embedding
+at a time followed by a fully connected layer, or a self-attention
+model which builds a weighted context sum (WS) before being
+passed to a pair of fully connected layers.
+identify additional constraints between entities ([58, 45, 28,
+6]). Attention mechanisms have also become a popular way
+to improve performance: word-level attention has been used
+in image captioning by learning the weights of words us-
+ing a LSTM [1] or a multi-layered perceptron [61, 12] be-
+fore being passed to a language generation model. Dual
+attention [41] has also been used to attend to the question
+in VQA using feed-forward neural networks. These ap-
+proaches could be used in conjunction with this work to
+further improve performance.
+3. Language Models
+We present three language model options for which we
+provide experimental results for 8 of 10 different embed-
+dings to determine which language model is best for each
+task and each embedding (sentence level embeddings can-
+not be incorporated into some of these architectures).
+In Figure 3 an Average Embedding, Self-Attention, and
+LSTM language architecture are shown. The Average Em-
+bedding model consists of mean pooling the embeddings,
+forming a single representation of all words wi(withn
+words in total) in a given sentence or phrase. A sample’s
+pooled vector is then passed through a pair of fully con-
+nected layers as shown in the upper left corner of Figure 3.
+A more complex language architecture is a LSTM; word
+representations are individually passed through a LSTM
+cell, each producing their own hidden state. LSTMs are typ-
+ically thought of as a “better” architecture choice, modeling
+the relationship between words in a sentence, as it maintains
+word ordering. We later show this assumption does not hold
+true across all vision-language tasks.
+Lastly, we compare a Self-Attention model that is closely
+related to the Average Embedding architecture. The pri-
+mary difference is the pooling layer, which now consists oftwo steps. First, a context vector Cis concatenated with all
+word embeddings in Wof a given sample. Our experiments
+use the average embedding as context. It is passed through
+a fully connected layer which applies Softmax to give con-
+text “scores” for each word in a sentence. Next, the inner
+product is taken of these weights and the original word em-
+beddings from Wto produce a context weighted sum which
+is then passed to a pair of fully connected layers.
+4. Experimental Setup
+In this section we provide details of each vision-language
+task. The datasets and vision-language task models are de-
+scribed in the appendix, but are referenced in Table 1. We
+split our experiments into three parts: Pretrained Embed-
+dings (Section 5), Adapted Embeddings (Section 6), and
+Multi-task Trained Embeddings (Section 7).
+4.1. Compared Tasks and Metrics
+Image-Sentence Retrieval. The goal is to retrieve relevant
+sentences given an image, or to retrieve relevant images
+given a sentence. It is evaluated using Recall@ Kwhere
+K= [1;5;10], resulting in six numbers which measure the
+performance of the model (three for image-to-sentence and
+three for sentence-to-image). We report the average of these
+six numbers as a measure of overall performance. All six
+numbers can be found in the appendix.
+Phrase Grounding. In phrase grounding the task is to ﬁnd
+the location of a phrase given an image it is known to exist
+in. Performance is measured using accuracy, where a box
+is deemed to be successfully localized if it has at least 0.5
+intersection over union (IOU) with the ground truth box.
+Text-to-Clip. For text-to-clip, the goal is to locate the tem-
+poral region ( i.e. the video clip) that is described by a query.
+Performance is measured using a mix of Recall@ K, where
+K= [1;5], and the average IOU the predicted temporal lo-
+cation of a query phrase has with its ground truth temporal
+segments. We use the evaluation code provided by Hen-
+dricks et al. [19] in our experiments. We report the average
+of these three metrics as an overall score; all metrics are
+reported in the appendix.
+Image Captioning. The goal of image captioning is to pro-
+duce natural language which describes an image scene with
+a well formed sentence. The produced captions are evalu-
+ated against a set of reference sentences for each image. We
+report the commonly used evaluation metric BLEU-4, with
+CIDEr and METEOR results available in the appendix.
+Visual Question Answering. In VQA [2], the goal is to
+produce a free-form natural language answer given an im-
+age and question. This open-ended task consists of three
+types of questions: yes/no, number and other. The accu-
+racy of the model is determined by the number of correctly
+answered questions. We evaluate on the test-dev set.5. Pretrained Word Embeddings
+We begin our exhaustive search across language feature
+choices with pretrained word embeddings. These offer an
+initial comparison across techniques that do not use forms
+of post-processing to adapt embeddings, but rather learn
+vectors with different model architectures and training ob-
+jectives. Word2Vec, FastText, InferSent, and BERT are re-
+viewed before results are discussed.
+5.1. Word Level Representations
+Word2Vec [39] is one of the most widespread word embed-
+dings in use since its release. It builds off of the probabilis-
+tic feed forward Neural Network Language Model (NNLM)
+introduced in [3], which is composed of input, projection,
+hidden, and output layers. The input is deﬁned by a 1-out-
+of-V vector where V is the vocabulary size. The projection
+matrix is shared amongst all words and the computational
+complexity between hidden and output layers is reduced
+using a hierarchical Softmax where the vocabulary is rep-
+resented as a Huffman binary tree.
+Word2Vec introduced two variations of the NNLM
+model, with the primary distinction being that the non-
+linear hidden layer is removed and the projection layer is
+shared amongst all words, i.e. the words are averaged. This
+leads to the ﬁrst model, Continuous Bag of Words (CBOW),
+in which given four previous and four future words, the
+current word is predicted. The second model, Skip-Gram,
+instead predicts the context words given the current word.
+This results in maximizing the classiﬁcation of a word given
+the words it is surrounded by. Skip-Gram tends to perform
+better with a larger range of context words, but this also re-
+sults in greater computational complexity.
+FastText [4] is an extension of the Word2Vec model in
+which the atomic entities of the embeddings are no longer
+words, but are instead character n-grams. N can be decided
+given the task and time or space constraints. A word is rep-
+resented as the sum of its character n-gram vectors in addi-
+tion to the word vector itself. This change of reference can
+improve performance due to better representation of rare,
+misspelled, and out of vocabulary words, as the n-grams
+create more neighbors for use during training.
+5.2. Sentence Level Representations
+InferSent [8] uses a bi-directional LSTM with max-pooling
+to create a sentence-level embedding. It is trained using the
+Natural Language Inference (NLI) task, in which the goal
+is to categorize natural language English sentence (premise,
+hypothesis) pairs into three classes: entailment, contradic-
+tion, and neutral. The NLI model architecture separately en-
+codes each sentence of the input pair using a BiLSTM. Af-
+ter, the pair’s sentences form a shared representation com-
+posed of the concatenation of the vectors, the element-wiseproduct, and the absolute element-wise difference. This
+vector is then fed into a three-class classiﬁer, deﬁned by
+several FC layers and a Softmax.
+BERT [10] is currently the state-of-the-art word embed-
+ding model. Its language encoder is a bi-directional multi-
+layered Transformer which directly follows the architec-
+ture described in [53]. The embedding is trained on two
+tasks: Masked Language Modeling (MLM) and Next Sen-
+tence Prediction. The goal of MLM is to predict the original
+vocabulary ID of a masked word given its context words.
+Next Sentence Prediction is the binary classiﬁcation task of
+determining if the second sentence is the true next sentence.
+5.3. Results
+We start with an embedding learned from scratch with
+random initialization as our ﬁrst baseline. Results demon-
+strate that while many previous works use scratch embed-
+dings, this greatly impacts performance in vision-language
+tasks. Unsurprisingly, when comparing the ﬁrst lines of
+Table 1(a,b), we ﬁnd that using Word2Vec rather than an
+embedding trained from scratch tends to improve perfor-
+mance. This is more important when considering a larger
+vocabulary as seen comparing phrase grounding experi-
+ments on DiDeMo and ReferIt, whose embeddings trained
+from scratch using their smaller vocabulary compare favor-
+ably to Word2Vec.
+The original Word2Vec embedding pretrained on Google
+News can be considered a second baseline. While Fast-
+Text is a more modern embedding, Word2Vec only falls
+behind within a point or two across all tasks, and even out-
+performs or performs equally as well as FastText for cer-
+tain tasks ( e.g. text-to-clip, image captioning). This vali-
+dates works which extend Word2Vec such as Retroﬁtting,
+HGLMM Fisher Vectors, and GrOVLE, as Word2Vec may
+still provide advantages with additional adaptations; results
+for adapted embeddings follow in Section 6.
+Table 1 also contains a comparison of language model
+variants across the ﬁve vision-language tasks we evaluate
+on. We see that ﬁne-tuning a word embedding on a vision-
+language task can have dramatic effects on the performance
+of the language model ( e.g. 5-10% increase to mean recall
+on image-sentence retrieval).
+When comparing the architecture choices from Figure 3
+we see that for retrieval-based tasks ( i.e. where the out-
+put is not free-form text) the Average Embedding and Self-
+Attention models perform better than a simple LSTM-based
+approach, with Self-Attention being best on average. This
+is especially notable since these two models have fewer pa-
+rameters and are faster to compute than a LSTM. Choos-
+ing to use a Self-Attention language model in future vision-
+language work will not only boost metrics, but will also be
+a more time efﬁcient option. The only apparent exception
+to this is the text-to-clip task. This may be because it is aTask Image-Sentence Retrieval Phrase Grounding Text-to-Clip Image Captioning VQA
+Dataset Flickr30K [62] MSCOCO [35]Flickr30KReferIt [24] DiDeMo [19] MSCOCO [35] VQA [16]Entities [47]
+Method Embedding Network [57] CITE [44] ARNet [7] EtEMN [21]
+Metric Mean Recall Accuracy Average BLEU-4 CIDEr Accuracy
+(a) Training from scratch
+Average Embedding 44.3 73.7 70.46 51.70 33.02 – – –
+Self-Attention 44.6 77.6 70.68 52.39 33.48 – – –
+LSTM 60.0 77.5 70.47 51.57 32.83 26.7 89.7 60.95
+(b) Word2Vec [39]
+Average Embedding 62.5 75.0 70.03 52.51 32.95 – – –
+Average Embedding + ft 71.5 78.2 70.85 53.29 32.58 – – –
+Self-Attention 63.6 75.6 70.19 52.41 33.23 – – –
+Self-Attention + ft 71.9 79.9 70.94 53.54 33.26 – – –
+LSTM 68.5 72.5 69.83 52.86 33.73 28.5 92.7 61.40
+LSTM + ft 69.0 78.2 70.55 53.58 33.94 28.5 94.0 61.35
+(c) FastText [4]
+Average Embedding 69.2 78.5 69.75 51.27 32.45 – – –
+Average Embedding + ft 73.0 80.7 70.62 53.24 32.01 – – –
+Self-Attention 69.5 78.6 69.87 52.49 33.31 – – –
+Self-Attention + ft 73.1 80.6 71.23 53.87 33.17 – – –
+LSTM 69.1 76.9 69.76 52.21 33.06 28.5 92.7 61.86
+LSTM + ft 68.5 80.1 71.09 53.95 32.51 28.3 93.2 61.66
+(d) Sentence-Level
+InferSent [8] 71.2 76.4 57.83 52.29 31.87 – – –
+BERT [10] 71.8 75.4 69.38 50.37 32.46 – – –
+Table 1. Word Embedding Comparison Across Vision Language Tasks. (a)contains the results of learning an embedding from scratch
+i.e. random initialization with ﬁne-tuning during training. The remaining sections compare (b)Word2Vec, (c)FastText, and (d)sentence
+level embeddings InferSent and BERT. All experiments show three model variants: Average Embedding, Self-Attention, and LSTM, with
+and without ﬁne-tuning during training. Average Embedding and Self-Attention are not used in generation tasks for Image Captioning and
+VQA as they are known to show worse performance; sentence level embeddings are not applicable for these tasks. See text for discussion.
+video-based task which contains some temporal language
+in its queries [19], so the ordering of words may be espe-
+cially important to identifying which video clip to select
+compared to other retrieval-based tasks. While all language
+models perform closely on ReferIt phrase grounding, this
+still suggests that there is no need to use the more complex
+LSTM language model without additional modiﬁcation.
+Lastly, sentence level embeddings InferSent and BERT
+are compared in Table 1(d); results are without ﬁne-tuning.
+Fine-tuning would likely improve performance, but is difﬁ-
+cult to incorporate due to size ( e.g. the larger BERT model
+contains a total of 340M parameters while the well-known
+VGG-16 network uses 138M; ﬁne-tuning the top layers
+of BERT still requires loading the full model). The two
+are comparable to each other with the exception of phrase
+grounding accuracy on Flickr30K Entities; BERT surpris-
+ingly outperforms InferSent by 11.55%. Both InferSent and
+BERT do not provide the best results across any task, and
+thus are not a leading option for vision-language tasks.
+InferSent and BERT reach comparable values to the
+best Word2Vec models for image-sentence retrieval on
+Flickr30K, performing more poorly for the MSCOCO
+dataset. For the remaining retrieval tasks, metrics are be-low the best performing model and embedding combination
+within 1-3 points, again noting the unusual exception of In-
+ferSent on phrase grounding of Flickr30K Entities, which
+signiﬁcantly drops below scratch performance.
+6. Adapted Word Embeddings
+Since the introduction of Word2Vec, several enhance-
+ment techniques have been proposed. In this section we ex-
+plore adaptations of Word2Vec which use different methods
+to post-process embeddings. Extensions either use language
+enhancements, visual enhancements, or both ( e.g. WordNet
+retroﬁtting, HGLMM vs. Visual Word2Vec vs. GrOVLE,
+respectively). We shall now brieﬂy discuss these enhance-
+ments.
+6.1. Visual Word2Vec
+Visual Word2Vec [29] is a neural model designed to
+ground the original Word2Vec representation with visual se-
+mantics. Its goal is to maximize the likelihood of a visual
+context given the set of words used to describe it, thus push-
+ing word representations used to describe the same visual
+scene closer together. Clusters are ﬁrst learned ofﬂine usingfeatures from abstract clip-art scenes such as the locations
+of objects, pose, expressions, and gaze to provide surrogate
+class labels. Word vectors initialized with Word2Vec are
+then passed through a single hidden layer network. After,
+a learned output weight matrix and Softmax are applied to
+predict the visual semantic class the words belong to.
+6.2. HGLMM Fisher Vectors
+Another post-processed embedding we use for this set
+of experiments is the Hybrid Gaussian-Laplacian Mixture
+Model (HGLMM) representation built off of Fisher vectors
+for Word2Vec [27]. While bag-of-words pooling is simple
+and commonly applied, Fisher vectors change this pooling
+technique and achieve state-of-the-art results on many ap-
+plications. Fisher vectors instead concatenate the gradients
+of the log-likelihood of local descriptors (which in this case
+are the Word2Vec vectors) with respect to the HGLMM pa-
+rameters. HGLMM is a weighted geometric mean of the
+Gaussian and Laplacian distributions and is ﬁt using Ex-
+pectation Maximization. Following [57, 44], we reduce the
+dimensions of the original encodings (18K-D) to 6K-D or
+300-D using PCA, as it has been found to improve numeri-
+cal stability on VL tasks (except for experiments on ReferIt
+which we reduce to 2K-D due to its small vocabulary size).
+6.3. GrOVLE: Graph Oriented Vision-Language
+Embedding
+We provide a new embedding, GrOVLE, which adapts
+Word2Vec using two knowledge bases: WordNet and Vi-
+sual Genome. This builds off of the retroﬁtting work of [14]
+in which WordNet was one of the lexicon options. The Vi-
+sual Genome relational graph is novel, as it creates a lan-
+guage graph that captures how words are used in visual con-
+texts, unlike any of the language databases used in [14]. We
+brieﬂy review retroﬁtting and then detail the construction of
+our original Visual Genome word relation graph. GrOVLE
+provides a vision-language enhanced embedding and out-
+performs Visual Word2Vec across many tasks. The released
+version of GrOVLE is multi-task trained, creating an addi-
+tional level of VL knowledge, later described in Section 7.
+6.3.1 Retroﬁtting Word Embeddings
+In this section we review the approach of Faruqui et al .
+[14], which proposed a graph based learning technique to
+“retroﬁt” additional semantic knowledge onto pretrained
+word embeddings.
+Given a vocabulary Vwith wordsfw1;w2;:::;w ngand
+its corresponding word embedding ^Q, where ^qiis the em-
+bedding for wi, belief propagation is performed to obtain a
+new embedding Qwhich minimizes the distances between
+the embedding representing each word and its neighbors.
+These neighbors are deﬁned as edges Ebetween words in a
+graph.L2regularization is performed between the originaland new word embeddings to help prevent overﬁtting. We
+ﬁnd that this L2regularization is necessary whenever we
+are updating the word embeddings ( i.e. we also use it dur-
+ing multi-task training described in Section 7). We use the
+same regularization parameters as Faruqui et al. and refer
+the reader to their work to view the ﬁnal objective function.
+6.3.2 Word Relation Graph Construction
+Below we describe the methods we use to create the edges
+between words which share some semantic relation. We
+use these edges to retroﬁt the word embeddings with the
+process described in Section 6.3.1. Of the lexicons provided
+by Faruqui et al. [14], we used only the WordNet graph, as
+it contains the largest vocabulary with the most edges. A
+joint lexicon is built with WordNet and Visual Genome as
+opposed to successively retroﬁtting the two; this minimized
+forgetting of the ﬁrst and thus improved performance.
+WordNet [40] is a hierarchical lexical database which or-
+ganizes nouns, adjectives, verbs and adverbs into sets of
+synonyms ( synsets ) and uses semantic relations to associate
+them. As in Faruqui et al. [14], we construct a graph by
+creating links between words if they have a synonym, hy-
+pernym, or hyponym relationship.
+Visual Genome [31] contains a wealth of language annota-
+tions for 108K images: descriptions of entities in an image,
+their attributes, relationships between multiple entities, and
+whole image and region-based QA pairs. Each instance in
+these annotations is considered a sample which we tokenize
+and remove stopwords from. We compute co-occurrence
+statistics over pairs of words within the sample for pairs
+that occur more than 50 times, resulting in 322,928 pairs
+for 12,849 words. For each word we compute a pointwise
+mutual information (PMI) score for all pairs it occurs in,
+and create links between the top ten words. This creates
+a graph where words that occur frequently together when
+describing visual data are linked.
+6.4. Results
+We see a small, but consistent improvement across most
+of the vision-language tasks using GrOVLE as seen in Ta-
+ble 2(b). These changes result in an embedding with com-
+parable performance to the HGLMM 6K-D features, which
+are reported in Table 2(e). However, our word embedding
+tends to perform better when embeddings are the same size
+(i.e. 300-D). For the generation-based tasks ( i.e. captioning
+and VQA), the beneﬁts of using adapted embeddings are
+less clear. This may simply be an artifact of the challenges
+in evaluating these tasks ( i.e., the captions are improving in
+a way the metrics don’t capture). Also, models that more
+carefully consider the effect of each word in a caption may
+beneﬁt more from our improved features ( e.g. [41, 60]).
+While Visual Word2Vec is an established visually-
+enhanced embedding, its published results did not includeTask Image-Sentence Retrieval Phrase Grounding Text-to-Clip Image Captioning VQA
+Dataset Flickr30K MSCOCOFlickr30KReferIt DiDeMo MSCOCO VQAEntities
+Metric Mean Recall Accuracy Average BLEU-4 CIDEr Accuracy
+(a) Word2Vec + wn [14]
+Average Embedding + ft 72.0 79.2 70.51 53.93 33.24 – – –
+Self-Attention + ft 72.4 80.0 70.70 53.81 33.65 – – –
+LSTM + ft 69.3 78.9 70.80 53.67 34.16 28.6 93.3 61.06
+(b) GrOVLE
+Average Embedding + ft 72.3 80.2 70.77 53.99 33.71 – – –
+Self-Attention + ft 72.1 80.5 70.95 53.75 33.14 – – –
+LSTM + ft 69.7 78.8 70.18 53.99 34.47 28.3 92.5 61.22
+(c) Visual Word2Vec [29]
+Average Embedding + ft 66.8 78.7 70.61 53.14 31.73 – – –
+Self-Attention + ft 68.8 79.2 71.07 53.26 31.15 – – –
+LSTM + ft 66.7 74.5 70.70 53.19 32.29 28.8 94.0 61.15
+(d) HGLMM (300-D) [27]
+Average Embedding + ft 71.0 79.8 70.64 53.71 32.62 – – –
+Self-Attention + ft 71.8 80.4 70.51 53.83 33.44 – – –
+LSTM + ft 69.5 77.9 70.37 53.10 33.85 28.7 94.0 61.44
+(e) HGLMM (6K-D) [27]
+Average Embedding + ft 73.5 80.9 70.83 53.36 32.66 – – –
+Self-Attention + ft 75.1 80.6 71.02 53.43 33.57 – – –
+LSTM + ft 68.0 79.4 70.38 53.89 34.62 28.0 92.8 60.58
+Table 2. Modiﬁcations of Word2Vec. (a)contains Word2Vec retroﬁtted results using only the WordNet (wn) lexicon from [14]. Next, (b)
+is our baseline embedding which includes the new Visual Genome relational graph. Visual Word2Vec results are provided in (c), and (d),
+(e)are Fisher vectors on top of Word2Vec. See text for discussion.
+Task Image-Sentence Retrieval Phrase Grounding Text-to-Clip Image Captioning VQA
+Metric Mean Recall Accuracy Average BLEU-4 CIDEr Accuracy
+GrOVLE w/o multi-task pretraining 64.7 75.0 70.53 52.15 34.45 28.5 92.7 61.46
++ multi-task pretraining w/o target task 65.8 76.4 70.82 52.21 34.57 28.8 93.3 61.47
++ multi-task pretraining w/ target task 66.2 80.2 70.87 52.64 34.82 28.5 92.7 61.53
++ multi-task pretraining w/ target task + ft 72.6 81.3 71.57 54.51 35.09 28.7 93.2 61.46
+Table 3. Comparison of training our word embeddings on four tasks and testing on the ﬁfth, as well as training on all ﬁve tasks.
+these vision-language tasks. Visual Word2Vec performs
+comparably amongst results for generation tasks ( i.e. im-
+age captioning and VQA), but these tasks have little vari-
+ance in results, with less than a point of difference across
+the adapted embeddings. The small gain provided in gen-
+eration tasks by Visual Word2Vec does not out-weight the
+drops in performance across other tasks such as the sig-
+niﬁcant mean recall drop of 6.3 compared to HGLMM’s
+6K-D Self-Attention result in line two of Table 2(c) and
+Table 2(e) for image-sentence retrieval of Flickr30K. For
+comparison, GrOVLE’s Self-Attention result in Table 2(b)
+is only 3 points lower.
+Finally, we report results using HGLMM of different
+dimension. HGLMM 300-D features are used for a more
+fair comparison to other embeddings. While the HGLMM
+6K-D representation primarily results in the highest perfor-
+mance, it performs more poorly on generation tasks and
+also results in high variance. For example, column one
+in Table 2(e) shows a range of 7.1 in mean recall, unlike
+GrOVLE which has a range of 2.6.7. Multi-task Training
+A drawback of using pretrained word embeddings like
+Word2Vec or the retroﬁtting process is that they are trained
+solely on text data. While our Visual Genome Graph pro-
+vides some general information on how words in our vocab-
+ulary are used for visual data, it doesn’t provide any sense of
+visual similarity between semantically different words that
+may be necessary to perform a particular vision-language
+task. To address this, we ﬁne-tune GrOVLE across the ﬁve
+VL tasks.
+We provide results for a four and ﬁve multi-task trained
+embedding. The four task experiments are performed with
+the ﬁnal task embedding ﬁxed to demonstrate how well the
+embeddings would generalize to new tasks. We also provide
+results for pretraining on ﬁve tasks with and without ﬁne-
+tuning during the last task. Similarly to PackNet [38], for
+each dataset/task in the four and ﬁve task experiments, we
+keep theKmost informative features frozen when training
+any subsequent task, diminishing the effect of catastrophicTask Image-Sentence Retrieval Phrase Grounding Text-to-Clip Image Captioning VQA
+Additional Models SCAN [33] QA R-CNN [20] TGN [5] BUTD [1] BAN[26]
+Metric Mean Recall Accuracy Average BLEU-4 CIDEr Accuracy
+Training from scratch 72.8 83.2 68.56 50.23 43.91 35.2 109.8 68.98
+FastText + ft 72.5 83.8 69.27 53.01 44.21 35.2 110.3 69.91
+GrOVLE (w/o multi-task pretraining) + ft 72.7 84.1 70.03 53.88 45.26 35.1 110.4 69.36
++ multi-task pretraining w/ target task + ft 76.2 84.7 71.08 54.10 43.61 35.7 111.6 69.97
+Table 4. We include results with additional models to verify trends. See text for discussion and the appendix for more.
+forgetting when ﬁne-tuning on a new task. For an embed-
+ding of size DandTtasks,K=D
+T,i.e.K= 60 in our
+experiments. We evenly split the Kfeatures for tasks with
+multiple datasets. Features that were tuned on a task are
+ranked according to variance and frozen before training on
+the next dataset/task. The end result is a pretrained word
+embedding which can be “dropped in” to existing models to
+improve performance across many vision-language tasks.
+To verify that the multi-task GrOVLE performance im-
+provements generalize across task model architecture, we
+provide results using additional task models in Table 4.
+More results can be found in the appendix.
+7.1. Results
+Table 3 reports results of the multi-task training proce-
+dure described above. We use the best performing language
+model in our comparisons for each task, i.e. Self-Attention
+for image-sentence retrieval and phrase grounding, and the
+LSTM language model for text-to-clip, image captioning,
+and VQA. The ﬁrst lines of Table 3 report the results of the
+original ﬁxed GrOVLE embedding, which should be con-
+sidered the baseline. The second line of Table 3 reports per-
+formance when the four-task pretrained GrOVLE is ﬁxed
+when used in the target task, i.e. the task currently being
+run. The third and fourth line of Table 3 report the results
+of our embedding when they were trained on all ﬁve tasks,
+and kept ﬁxed or ﬁne-tuned for the target task, respectively.
+The results of line three and four demonstrate that our
+improved embedding tends to transfer better when applied
+with ﬁne-tuning during the target task. We ﬁnd similar
+trends in performance improvements across tasks: larger
+gains occur for image-sentence retrieval with +7.9 mean
+recall for the Flickr30K dataset and +6.3 for MSCOCO.
+All other tasks have performance improvements under one
+point, showing that while the vision-language tasks ap-
+pear to transfer well without harming performance, they are
+leveraged most in image-sentence retrieval, with an excep-
+tion of phrase grounding accuracy on ReferIt (+2.36%).
+Table 4 provides more models per task and demonstrates
+consistent results: embeddings can signiﬁcantly affect per-
+formance and GrOVLE variants are still the best embedding
+overall. As we move down the table we ﬁnd even larger per-
+formance improvements made by using the ﬁve-task pre-
+trained GrOVLE with ﬁne-tuning than in Table 3. This
+multi-task variant is the best performing across all tasks,thus we release this embedding for public use.
+8. Conclusion
+We believe there are ﬁve major ﬁndings in our experi-
+ments that researchers should keep in mind when consider-
+ing the language component for vision-language tasks:
+1. On retrieval-style tasks, the Average Embedding and
+Self-Attention language model tend to outperform a
+simple LSTM.
+2. Fine-tuning a word embedding for a task can signiﬁ-
+cantly impact performance.
+3. For standard vision-language metrics, language fea-
+tures matter most on retrieval and grounding tasks, and
+less on text-to-clip and generation tasks.
+4. Word embeddings trained on outside vision-language
+datasets and tasks generalize to other applications.
+5. Multi-task trained GrOVLE is the leading embedding
+option for four of the ﬁve vision-language tasks when
+used with the best corresponding language model.
+We have provided evidence that language and vision
+features should be treated equally when used in vision-
+language tasks. When using the best embedding, lan-
+guage model, and training choices, performance for tasks
+with more variance can greatly improve, and tasks with
+more stubborn performance metrics can be nudged fur-
+ther. These insights are proposed to beneﬁt future vision-
+language work. Along with these ﬁndings, we have intro-
+duced GrOVLE, which incorporates hierarchical language
+relations from WordNet as well as language with visual
+context from Visual Genome. In addition to these adap-
+tations, we perform multi-task training with ﬁve common
+vision-language tasks to further incorporate nuanced visual
+information. This provides a 300-D embedding with vision-
+language enhancements that is comparable to current em-
+beddings and provides low variance results.
+Acknowledgements
+We would like to thank the reviewers for their helpful
+suggestions. This work is supported in part by DARPA and
+NSF awards IIS-1724237, CNS-1629700, CCF-1723379.References
+[1] Peter Anderson, Xiaodong He, Chris Buehler, Damien
+Teney, Mark Johnson, Stephen Gould, and Lei Zhang.
+Bottom-up and top-down attention for image captioning and
+visual question answering. In CVPR , 2018. 1, 3, 8, 12, 13,
+18
+[2] Stanislaw Antol, Aishwarya Agrawal, Jiasen Lu, Margaret
+Mitchell, Dhruv Batra, C. Lawrence Zitnick, and Devi
+Parikh. VQA: Visual Question Answering. In ICCV , 2015.
+1, 3
+[3] Yoshua Bengio, Rjean Ducharme, Pascal Vincent, and Chris-
+tian Jauvin. A neural probabilistic language model. In Jour-
+nal of Machine Learning Research, 3:1137-1155 , 2003. 4
+[4] Piotr Bojanowski, Edouard Grave, Armand Joulin, and
+Tomas Mikolov. Enriching word vectors with subword infor-
+mation. Transactions of the Association for Computational
+Linguistics , 5:135–146, 2017. 1, 4, 5
+[5] Jingyuan Chen, Xinpeng Chen, Lin Ma, Zequn Jie, and Tat-
+Seng Chua. Temporally grounding natural sentence in video.
+InEMNLP , 2018. 1, 8, 11, 12, 16
+[6] Kan Chen, Rama Kovvuri, and Ram Nevatia. Query-guided
+regression network with context policy for phrase grounding.
+InICCV , 2017. 3
+[7] Xinpeng Chen, Lin Ma, Wenhao Jiang, Jian Yao, and Wei
+Liu. Regularizing rnns for caption generation by reconstruct-
+ing the past with the present. In arXiv:1803.11439v2 , 2018.
+5, 11, 17
+[8] Alexis Conneau, Douwe Kiela, Holger Schwenk, and Loc
+Barraultand Antoine Bordes. Supervised learning of univer-
+sal sentence representations from natural language inference
+data. 2017. 1, 4, 5
+[9] Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li, and
+Li Fei-Fei. ImageNet: A Large-Scale Hierarchical Image
+Database. In CVPR , 2009. 11
+[10] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina
+Toutanova. Bert: Pre-training of deep bidirectional trans-
+formers for language understanding. In arXiv:1810.04805v1 ,
+2018. 1, 2, 4, 5
+[11] Fartash Faghri, David J. Fleet, Jamie Ryan Kiros, and Sanja
+Fidler. VSE++: improving visual-semantic embeddings with
+hard negatives. In BMVC , 2018. 2
+[12] Fang Fang, Hanli Wang, and Pengjie Tang. Image caption-
+ing with word level attention. 2018 25th IEEE International
+Conference on Image Processing (ICIP) , pages 1278–1282,
+2018. 1, 3
+[13] Hao Fang, Saurabh Gupta, Forrest Iandola, Rupesh Srivas-
+tava, Li Deng, Piotr Doll ´ar, Jianfeng Gao, Xiaodong He,
+Margaret Mitchell, John Platt, et al. From captions to visual
+concepts and back. arXiv:1411.4952 , 2014. 1
+[14] Manaal Faruqui, Jesse Dodge, Sujay K. Jauhar, Chris Dyer,
+Eduard Hovy, and Noah A. Smith. Retroﬁtting word vectors
+to semantic lexicons. In NAACL , 2015. 1, 2, 6, 7
+[15] Akira Fukui, Dong Huk Park, Daylen Yang, Anna Rohrbach,
+Trevor Darrell, and Marcus Rohrbach. Multimodal com-
+pact bilinear pooling for visual question answering and vi-
+sual grounding. In EMNLP , 2016. 1[16] Yash Goyal, Tejas Khot, Douglas Summers-Stay, Dhruv Ba-
+tra, and Devi Parikh. Making the V in VQA matter: Ele-
+vating the role of image understanding in Visual Question
+Answering. In Conference on Computer Vision and Pattern
+Recognition (CVPR) , 2017. 5, 11
+[17] Michael Grubinger, Paul Clough, Henning Mller, and
+Thomas Deselaers. The IAPR TC-12 benchmark – a new
+evaluation resource for visual information systems, 2006. 11
+[18] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+Deep residual learning for image recognition. arXiv preprint
+arXiv:1512.03385 , 2015. 11
+[19] Lisa Anne Hendricks, Oliver Wang, Eli Shechtman, Josef
+Sivic, Trevor Darrell, and Bryan Russell. Localizing mo-
+ments in video with natural language. In ICCV , 2017. 1, 3,
+5, 11
+[20] Ryota Hinami and Shin’ichi Satoh. Discriminative learning
+of open-vocabulary object retrieval and localization by neg-
+ative phrase augmentation. In EMNLP , 2018. 1, 8, 12, 15
+[21] Ronghang Hu, Jacob Andreas, Marcus Rohrbach, Trevor
+Darrell, and Kate Saenko. Learning to reason: End-to-
+end module networks for visual question answering. CoRR,
+abs/1704.05526 , 3, 2017. 5, 12
+[22] Ronghang Hu, Huazhe Xu, Marcus Rohrbach, Jiashi Feng,
+Kate Saenko, and Trevor Darrell. Natural language object
+retrieval. In CVPR , 2016. 1, 11
+[23] Yan Huang, Qi Wu, and Liang Wang. Learning semantic
+concepts and order for image and sentence matching. In
+CVPR , 2018. 1
+[24] Sahar Kazemzadeh, Vicente Ordonez, Mark Matten, and
+Tamara Berg. ReferItGame: Referring to objects in pho-
+tographs of natural scenes. In EMNLP , 2014. 5, 11
+[25] Douwe Kiela and Lon Bottou. Learning image embeddings
+using convolutional neural networks for improved multi-
+modal semantics. In EMNLP , 2014. 2
+[26] Jin-Hwa Kim, Jaehyun Jun, and Byoung-Tak Zhang. Bilin-
+ear attention networks. In NeurIPS , 2018. 8, 13, 18
+[27] Benjamin Klein, Guy Lev, Gil Sadeh, and Lior Wolf. Fisher
+vectors derived from hybrid gaussian-laplacian mixture mod-
+els for image annotation. In CVPR , 2015. 1, 2, 6, 7
+[28] Chen Kong, Dahua Lin, Mohit Bansal, Raquel Urtasun, and
+Sanja Fidler. What are you talking about? text-to-image
+coreference. In CVPR , 2014. 3
+[29] Satwik Kottur, Ramakrishna Vedantam, Jose M. F. Moura,
+and Devi Parikh. Visual word2vec (vis-w2v): Learning vi-
+sually grounded word embeddings using abstract scenes. In
+CVPR , 2016. 1, 2, 5, 7
+[30] Ranjay Krishna, Kenji Hata, Frederic Ren, Li Fei-Fei, and
+Juan Carlos Niebles. Dense-captioning events in videos. In
+ICCV , 2017. 1
+[31] Ranjay Krishna, Yuke Zhu, Oliver Groth, Justin Johnson,
+Kenji Hata, Joshua Kravitz, Stephanie Chen, Yannis Kalan-
+tidis, Li-Jia Li, David A Shamma, Michael Bernstein, and
+Li Fei-Fei. Visual genome: Connecting language and vision
+using crowdsourced dense image annotations. 2016. 2, 6, 12
+[32] Angeliki Lazaridou, Nghia The Pham, and Marco Baroni.
+Combining language and vision with a multimodal skip-
+gram model. In NAACL , 2015. 2[33] Kuang-Huei Lee, Xi Chen, Gang Hua, Houdong Hu, and Xi-
+aodong He. Stacked cross attention for image-text matching.
+InECCV , 2018. 1, 8, 12, 13, 14
+[34] Guy Lev, Gil Sadeh, Benjamin Klein, and Lior Wolf. RNN
+ﬁsher vectors for action recognition and image annotation.
+InECCV , 2016. 2
+[35] Tsung-Yi Lin, Michael Maire, Serge Belongie, James Hays,
+Pietro Perona, Deva Ramanan, Piotr Doll ´ar, and C Lawrence
+Zitnick. Microsoft COCO: Common objects in context. In
+ECCV , 2014. 5, 11
+[36] Bingbin Liu, Serena Yeung, Edward Chou, De-An Huang,
+Li Fei-Fei, and Juan Carlos Niebles. Temporal modular
+networks for retrieving complex compositional activities in
+videos. In ECCV , 2018. 11
+[37] Jiasen Lu, Jianwei Yang, Dhruv Batra, and Devi Parikh.
+Hierarchical question-image co-attention for visual question
+answering. In Proceedings of the 30th International Confer-
+ence on Neural Information Processing Systems , NIPS’16,
+pages 289–297, USA, 2016. Curran Associates Inc. 1
+[38] Arun Mallya and Svetlana Lazebnik. Packnet: Adding mul-
+tiple tasks to a single network by iterative pruning. In CVPR ,
+2018. 2, 7
+[39] Tom Mikolov, Wen-tau Yih, and Geoffrey Zweig. Linguis-
+tic regularities in continuous space word representations. In
+NAACL , 2013. 1, 4, 5
+[40] George A. Miller. Wordnet: a lexical database for english.
+Communications of the ACM , 1995. 6
+[41] Hyeonseob Nam, Jung-Woo Ha, and Jeonghee Kim. Dual
+attention networks for multimodal reasoning and matching.
+InCVPR , 2017. 1, 3, 6, 11
+[42] Jeffrey Pennington, Richard Socher, and Christopher D.
+Manning. Glove: Global vectors for word representation.
+InEMNLP , 2014. 1
+[43] Matthew E. Peters, Mark Neumann, Mohit Iyyer, Matt Gard-
+ner, Christopher Clark, Kenton Lee, and Luke Zettlemoyer.
+Deep contextualized word representations. In NAACL , 2018.
+1
+[44] Bryan A. Plummer, Paige Kordas, M. Hadi Kiapour, Shuai
+Zheng, Robinson Piramuthu, and Svetlana Lazebnik. Condi-
+tional image-text embedding networks. In ECCV , 2018. 1,
+5, 6, 11, 13, 15, 16
+[45] Bryan A. Plummer, Arun Mallya, Christopher M. Cervantes,
+Julia Hockenmaier, and Svetlana Lazebnik. Phrase local-
+ization and visual relationship detection with comprehensive
+image-language cues. In ICCV , 2017. 1, 3
+[46] Bryan A. Plummer, Kevin J. Shih, Yichen Li, Ke Xu, Svet-
+lana Lazebnik, Stan Sclaroff, and Kate Saenko. Revisiting
+image-language embeddings for open-ended phrase detec-
+tion. arXiv:1811.07212 , 2018. 11, 12
+[47] Bryan A. Plummer, Liwei Wang, Chris M. Cervantes,
+Juan C. Caicedo, Julia Hockenmaier, and Svetlana Lazeb-
+nik. Flickr30K Entities: Collecting region-to-phrase cor-
+respondences for richer image-to-sentence models. IJCV ,
+123(1):74–93, May 2017. 1, 5, 11
+[48] Shaoqing Ren, Kaiming He, Ross Girshick, and Jian Sun.
+Faster R-CNN: Towards real-time object detection with re-
+gion proposal networks. In NIPS , 2015. 12[49] Anna Rohrbach, Marcus Rohrbach, Ronghang Hu, Trevor
+Darrell, and Bernt Schiele. Grounding of textual phrases in
+images by reconstruction. In ECCV , 2016. 1, 11
+[50] Abhinav Shrivastava, Abhinav Gupta, and Ross Girshick.
+Training region-based object detectors with online hard ex-
+ample mining. In CVPR , 2016. 12
+[51] Karen Simonyan and Andrew Zisserman. Very deep
+convolutional networks for large-scale image recognition.
+arXiv:1409.1556 , 2014. 11
+[52] Tatiana Tommasi, Arun Mallya, Bryan A. Plummer, Svetlana
+Lazebnik, Alex C. Berg, and Tamara L. Berg. Solving Visual
+Madlibs with Multiple Cues. In BMVC , 2016. 1
+[53] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszko-
+reit, Llion Jones, Aidan N Gomez, Lukasz Kaiser, and Illia
+Polosukhin. Attention is all you need. In Advances in Neural
+Information Processing Systems , pages 6000–6010, 2017. 4
+[54] Ivan Vendrov, Ryan Kiros, Sanja Fidler, and Raquel Urtasun.
+Order embeddings of images and language. In ICLR , 2016.
+1, 2
+[55] Subhashini Venugopalan, Marcus Rohrbach, Jeff Donahue,
+Raymond Mooney, Trevor Darrell, and Kate Saenko. Se-
+quence to sequence – video to text. In ICCV , 2015. 1
+[56] Oriol Vinyals, Alexander Toshev, Samy Bengio, and Du-
+mitru Erhan. Show and tell: A neural image caption gen-
+erator. In CVPR , 2015. 1, 11, 12, 13, 17
+[57] Liwei Wang, Yin Li, Jing Huang, and Svetlana Lazebnik.
+Learning two-branch neural networks for image-text match-
+ing tasks. arXiv:1704.03470 , 2017. 1, 5, 6, 11, 13, 14
+[58] Mingzhe Wang, Mahmoud Azab, Noriyuki Kojima, Rada
+Mihalcea, and Jia Deng. Structured matching for phrase lo-
+calization. In ECCV , 2016. 3
+[59] Huijuan Xu, Abir Das, and Kate Saenko. R-C3D: Region
+convolutional 3d network for temporal activity detection. In
+ICCV , 2017. 11
+[60] Huijuan Xu, Kun He, Bryan A. Plummer, Leonid Sigal, Stan
+Sclaroff, and Kate Saenko. Multilevel language and vision
+integration for text-to-clip retrieval. In AAAI , 2019. 1, 6
+[61] Kelvin Xu, Jimmy Ba, Ryan Kiros, Aaron Courville, Ruslan
+Salakhutdinov, Richard Zemel, and Yoshua Bengio. Show,
+attend and tell: Neural image caption generation with visual
+attention. arXiv:1502.03044 , 2015. 1, 3
+[62] Peter Young, Alice Lai, Micah Hodosh, and Julia Hocken-
+maier. From image descriptions to visual denotations: New
+similarity metrics for semantic inference over event descrip-
+tions. TACL , 2:67–78, 2014. 5, 11
+[63] Licheng Yu, Eunbyung Park, Alexander C. Berg, and
+Tamara L. Berg. Visual Madlibs: Fill in the blank Image
+Generation and Question Answering. ICCV , 2015. 1
+[64] Mo Yu and Mark Dredze. Improving lexical embeddings
+with semantic knowledge. In ACL, 2014. 2
+[65] Peng Zhang, Yash Goyal, Douglas Summers-Stay, Dhruv
+Batra, and Devi Parikh. Yin and Yang: Balancing and an-
+swering binary visual questions. In CVPR , 2016. 1
+[66] Ying Zhang and Huchuan Lu. Deep cross-modal projection
+learning for image-text matching. In ECCV , 2018. 119. Appendix
+9.1. Datasets
+Flickr30K [62]. This dataset consists of 32K images obtained from the Flickr website, each of which has been anno-
+tated with ﬁve descriptive captions. We use the splits of Plummer et al. [47], which separate the dataset into 30K/1K/1K
+train/test/validation images which we use for the image-sentence retrieval and phrase grounding tasks.
+MSCOCO [35]. This dataset links 123K images for the training and validation sets (80K/40K images, respectively), each
+of which is annotated with ﬁve descriptive captions. For the image-sentence retrieval experiments, we use the test/validation
+splits from Wang et al. [57], which consists of 1K images for each split, for a total of 2K images, randomly sampled from
+the validation set. For image captioning experiments, use the splits from Chen et al. [7], which reserves 5K images each for
+validation and testing.
+Flickr30K Entities [47]. This dataset augments the Flickr30K dataset with 276K bounding boxes which are linked to noun
+phrases in the descriptive captions. We use the same splits as the Flickr30K dataset, resulting in 14.5K instances across the
+1K images in the test set for the phrase grounding task. Following [47, 49, 57], we use the union of the bounding boxes for
+the ground truth box of a phrase which is linked to multiple boxes.
+ReferIt [24]. This dataset augments the 20K images from the IAPR RC-12 dataset [17] with 120K region descriptions. We
+split the splits of Hu et al. [22], which split the images evenly into train/validation and test sets (10K each), resulting in about
+60K instances in each split.
+DiDeMo [19]. This dataset consists of just over 10,000 videos, each of which has between 3-5 video segment descriptions.
+We use the splits provided by Hendricks et al. [19], which splits the videos into sets of 8.4K/1K/1K for train/test/validation.
+VQA v2 [16]. This dataset augments images from MSCOCO with QA pairs. The training, validation and test image sets con-
+tain 83K, 41K, and 81K images, respectively. This constitutes 444K, 214K, and 448K questions for training/validation/testing
+splits. Each training and validation question has ten answers provided.
+9.2. Task Methods
+Image-Sentence Retrieval. We use a modiﬁed implementation of the Embedding Network [57] provided by the authors in
+our experiments2. This model uses two branches, one for text and one for images, to learn a projection to a shared embedding
+space where Euclidean distance is used to measure similarity between images and sentences. We use the default parameters
+and data processing in the author’s implementation, except that we compute the visual representation for each image using a
+152-layer ResNet [18] which has been trained on ImageNet [9]. Additionally, we use 448x448 crops rather than the 224x224
+pixel crops used by Wang et al. [57] as done in prior work, e.g. [66, 41]. Following [57, 66, 41], we keep the CNN parameters
+ﬁxed for a fair comparison. By default this model uses an Average Embedding language model. When we use the LSTM
+language model, we use a hidden state of 512-D. We set regularization coefﬁcient to be 1e-4 when ﬁne-tuning the Average
+Embedding and Self-Attention model and 1e-6 for the LSTM model.
+Phrase Grounding. To evaluate our word embeddings on this task, we use the implementation of CITE network [44]3. This
+model learns a set of embeddings which share some parameters, each of which captures a different concept important for
+phrase grounding. Following Plummer et al. [46], we use the parameters and feature representation learned from ﬁne-tuning
+a 101-layer ResNet and Region Proposal Network. This model also uses an Average Embedding language model by default,
+and we use 256-D hidden state for our LSTM experiments. We set regularization coefﬁcient to be 1e-5 for both datasets.
+Text-to-Clip. When we performed our experiments none of the methods on the DiDeMo dataset which outperform the
+baseline model of Hendricks et al. [19] had publicly available code for the text-to-clip task ( e.g. [5, 36]). As a result, we used
+the CITE network for the text-to-clip task since it performed better than the baseline model as well as better than the phrase-
+region grounding Similarity Network [57] and straightforward adaptations of the R-C3D model [59] in our experiments. We
+learnK= 8 concept embeddings for this dataset and use the VGG [51] features for the visual representation provided by
+Hendricks et al. [19]. We use a 512-D hidden state for our LSTM models, and set regularization coefﬁcient to 5e-2. This
+dataset likely required additional regularization when ﬁne-tuning its embeddings due to its relatively small size.
+Image Captioning. We use a PyTorch implementation4of the Auto-Reconstructor Network (ARNet) architecture [7] pro-
+vided by the authors. This model builds off of the original Neural Image Captioning (NIC) architecture [56] by adding an
+2https://github.com/lwwang/Two_branch_network
+3https://github.com/BryanPlummer/cite
+4https://github.com/chenxinpeng/ARNetadditional LSTM to reconstruct previous hidden states. We set the regularization coefﬁcient of the NIC loss, , to be 5e-2
+when ﬁne-tuning the word embeddings. ARNet’s additional stacked LSTM takes a current hidden state as input and attempts
+to generate the previous hidden state. This can be viewed as a “soft” zoneout strategy as the model adaptively learns how to
+reconstruct the last hidden state at each time step, as opposed to the typical zoneout regularizer which makes a binary choice
+between previous and current hidden states.
+Visual Question Answering. We use the authors’ implementation5of the End-to-End Module Networks [21] as our VQA
+model. This network learns to decompose natural language questions into sub-tasks and assembles question-speciﬁc deep
+networks from neural modules to solve its corresponding sub-task. The training process of this model consists of two parts:
+the cloning expert and the policy search. Since the policy search improves the model by only 0.7% while adding signiﬁcant
+training time, we report results only using the cloning expert. We use the default parameters in the implementation and follow
+the authors’ data pre-processing steps. When we include L2 regularization on the word embeddings, we set its weight to be
+5e-4. Note that we report results using the VQA v2 dataset, whereas Hu et al. [21] reported results on VQA v1.
+9.3. Additional Task Methods
+Image-Sentence Retrieval. We also report results with the Stacked Cross Attention Network (SCAN) model [33] using the
+authors’ provided implementation6. Unlike the Embedding Network, this model uses the top 36 region-level features [1]
+which have been trained to capture image concepts on the Visual Genome dataset [31]. A similarity score is computed
+between all combinations of words in a sentence and image regions, and then aggregated using a multi-step attention mecha-
+nism to obtain an overall matching score. For each dataset, we use the settings for the best performing single model reported
+in their paper, i.e.,i-t AVG (1 = 4) for Flickr30K and t-i AVG (1 = 9) for MSCOCO.
+Phrase Grounding. To supplement our results, we experiment with using the implementation of the Query Adaptive R-
+CNN network [20] from Plummer et al. [46]. This model adapts Faster R-CNN [48] to the phrase grounding task. The
+implementation in Plummer et al. updates the VGG network used in the original paper with a 101-layer ResNet, but does
+not pretrain their model on Visual Genome or use the online hard negative mining [50] as done in the original paper. In
+addition, Plummer et al. also reported better performance by randomly sampling 5 phrases associated with an image for each
+minibatch rather than using all annotated phrases. We compared this implementation using a VGG network to the grounding
+performance reported in [20] and found it performed similarly on Flickr30K Entities despite these changes, but using a
+ResNet backbone as done in our experiments does boost performance by 3-8%.
+Text-to-Clip. We provide additional results from the Temporally Grounding Natural Sentence in Video (TGN) [5] model.
+The TGN model consists of 3 components: the encoder, the interactor and the grounder. Visual and language features are ﬁrst
+projected into the same embedding space using the encoder. Next, the interactor computes the frame-by-word interactions
+using the encoded visual and language features. Finally, based on these interactions, the grounder scores and ranks the
+temporal segment candidates ending at each frame. We note that these results are obtained from our own implementation of
+the TGN model as the authors have not released code. In our implementation, we adopt the same hyperparameter values as
+detailed in [5].
+Image Captioning. We provide results for two additional image captioning models: the vanilla show-and-tell Neural Image
+Captioning model (NIC) of Vinyals et al. [56] and the popular Bottom-Up Town-Down (BUTD) model from Anderson et al.
+[1]. We set = 5e-2 as our L2 regularization coefﬁcient when ﬁne-tuning the word embeddings for both models. We use
+a PyTorch implementation7of the NIC model for this task. This model follows an encoder-decoder paradigm inspired by
+machine translation, in which the probability of a sentence given an image is maximized. A CNN encodes an image which
+is then fed into a decoder LSTM to form a natural language sentence. Unlike the results reported in Vinyals et al., we use a
+single model rather than an ensemble, and use a 152-layer ResNet pretrained on ImageNet as our image encoder.
+We also use a PyTorch implementation8of the Bottom-Up Top-Down Attention image captioning model. BUTD uses
+a combination of visual attention mechanisms: bottom-up attention is implemented using Faster R-CNN [48] to generate
+object region proposals and their respective features, which are then weighted by the top-down attention mechanism. The
+model also adds an attribute predictor to Faster R-CNN. The language model is implemented with two standard LSTMs,
+where the ﬁrst layer serves as top-down attention and the second is the language generator. The attention LSTM takes the
+5https://github.com/ronghanghu/n2nmn
+6https://github.com/kuanghuei/SCAN
+7https://github.com/yunjey/pytorch-tutorial
+8https://github.com/ruotianluo/self-critical.pytorchprevious time step output, mean pooled image features, and previously generated word encoding as input. After a Softmax is
+applied to the output of the attention LSTM, the weighted visual features are passed to the generator LSTM.
+Visual Question Answering. We provide additional VQA results using the Bilinear Attention Networks (BAN) model [26].
+The BAN model utilizes adaptive region-level features [1] as the visual input. It extracts joint representations from each pair
+of visual and word features via low-rank bilinear pooling while computing their bilinear interactions using attention maps.
+We use the provided implementation9in our experiments and adopt the same hyperparameter settings as described in [26].
+9.4. Discrepancies with Published Work
+If available, we use the authors’ publicly available code. Baseline results differ from published values despite this. The
+best results in [33], [56] are obtained using ensemble methods, but our results use a single model. Although, single model [33]
+with the ﬁve-task multi-task trained GrOVLE + ft is on par with ensemble results.
+9.5. Comparison of Word2Vec and GloVe
+When initially deciding the set of embeddings to use in our experiments, we did consider GloVe. However, there were
+insigniﬁcant differences between Word2Vec and GloVe results (some shown below). Thus, we didn’t include it in the main
+paper due to space constraints as GloVe is also a dated embedding.
+Image-Sentence Retrieval [57] Phrase Grounding [44]
+Flickr30k MSCOCO Flickr30k Entities ReferIt
+Method Mean Recall Accuracy
+Word2Vec 71.9 79.9 70.94 53.54
+GloVe 71.9 80.3 70.11 52.18
+Table 5. Preliminary experiments showed GloVe performed similarly to Word2Vec.
+9.6. Image-Sentence Retrieval Extended Pretrained Embedding Metrics
+Embedding Network [57]
+Flickr30K MSCOCO
+Image-to-Sentence Sentence-to-Image Image-to-Sentence Sentence-to-Image
+Method R@1 R@5 R@10 R@1 R@5 R@10 mR R@1 R@5 R@10 R@1 R@5 R@10 mR
+(a) Training from scratch
+Average Embedding 23.3 48.8 61.9 15.6 35.3 44.3 38.2 55.3 85.7 93.7 43.7 76.7 87.1 73.7
+Self-Attention 25.9 53.4 66.2 18.1 45.5 58.8 44.6 59.8 88.7 94.9 45.7 79.5 90.0 76.6
+LSTM 45.2 72.2 82.6 29.9 59.0 70.9 60.0 62.8 89.4 94.6 48.1 81.0 89.3 77.5
+(b) Word2Vec
+Average Embedding 47.6 75.8 84.3 31.8 62.2 73.2 62.5 57.6 87.2 93.7 44.4 78.8 88.1 75.0
+Average Embedding + ft 56.7 84.3 91.4 41.6 72.9 82.1 71.5 62.4 89.1 95.0 50.2 82.2 90.2 78.2
+Self-Attention 48.7 76.0 84.5 33.0 64.4 75.2 63.6 58.6 87.4 93.2 45.4 79.7 89.4 75.6
+Self-Attention + ft 57.0 84.4 91.4 42.4 73.5 82.8 71.9 64.8 91.2 96.4 51.9 83.1 91.9 79.9
+LSTM 50.9 81.4 89.3 38.9 70.2 80.5 68.5 53.8 83.4 92.4 42.0 76.0 87.3 72.5
+LSTM + ft 52.1 82.4 89.9 39.6 70.0 79.9 69.0 63.5 89.4 95.0 49.7 81.4 90.3 78.2
+(c) FastText
+Average Embedding 53.3 82.7 90.3 39.2 70.1 80.0 69.2 62.0 91.0 96.1 48.8 82.0 91.4 78.5
+Average Embedding + ft 59.4 86.8 92.0 42.6 73.7 83.5 73.0 66.6 91.7 96.6 52.7 84.4 92.2 80.7
+Self-Attention 53.6 81.4 90.0 40.0 71.0 81.0 69.5 63.2 90.7 95.9 48.5 82.3 91.1 78.6
+Self-Attention + ft 58.8 85.8 91.8 44.2 74.6 83.3 73.1 65.3 92.0 96.7 52.8 84.2 92.5 80.6
+LSTM 52.7 83.3 89.9 38.6 70.2 79.9 69.1 57.5 89.7 95.1 47.6 81.4 90.6 76.9
+LSTM + ft 52.1 81.4 89.0 39.0 69.9 79.6 68.5 65.3 91.5 97.1 51.6 83.7 91.5 80.1
+(d) Sentence-Level
+InferSent 56.4 54.4 91.1 40.7 72.3 82.2 71.2 60.8 90.4 96.1 47.6 77.8 85.5 76.4
+BERT 57.9 84.9 91.3 41.3 73.0 82.6 71.8 58.6 89.2 95.8 46.2 76.9 85.4 75.4
+Table 6. Image-sentence retrieval results for pretrained embeddings.
+9https://github.com/jnhwkim/ban-vqa9.7. Image-Sentence Retrieval Extended Adapted Embedding Metrics
+Embedding Network [57]
+Flickr30K MSCOCO
+Image-to-Sentence Sentence-to-Image Image-to-Sentence Sentence-to-Image
+Method R@1 R@5 R@10 R@1 R@5 R@10 mR R@1 R@5 R@10 R@1 R@5 R@10 mR
+(a) Word2Vec + wn
+Average Embedding + ft 57.7 85.3 91.5 42.2 73.2 82.3 72.0 63.6 90.8 95.6 51.1 83.2 91.1 79.2
+Self-Attention + ft 57.6 86.2 92.1 42.5 73.3 82.7 72.4 64.0 91.5 96.8 51.4 84.3 91.7 80.0
+LSTM + ft 53.5 82.8 89.9 39.3 70.2 80.5 69.3 63.8 90.6 95.7 50.2 82.0 90.9 78.9
+(b) GrOVLE
+Average Embedding + ft 57.6 85.1 92.0 42.6 73.6 82.6 72.3 65.2 91.8 96.5 52.1 83.9 92.1 80.2
+Self-Attention + ft 56.9 84.2 91.7 43.2 73.9 82.8 72.1 67.6 91.4 96.3 52.0 83.7 92.1 80.5
+LSTM + ft 54.1 82.7 91.1 39.7 70.2 80.1 69.7 65.0 89.6 95.8 49.7 82.0 90.8 78.8
+(c) Visual Word2Vec
+Average Embedding + ft 50.0 79.7 87.0 37.0 68.3 78.6 66.8 61.7 90.6 95.8 50.0 82.7 91.2 78.7
+Self-Attention + ft 51.3 82.3 89.5 40.9 69.1 79.9 68.8 61.6 91.4 96.7 50.2 83.1 92.4 79.2
+LSTM + ft 50.5 78.3 88.6 36.2 67.7 78.7 66.7 56.2 87.3 94.8 42.5 77.3 87.8 74.5
+(d) HGLMM (300-D)
+Average Embedding + ft 56.6 84.2 90.8 41.4 72.0 81.2 71.0 65.5 90.7 96.0 51.5 83.4 91.5 79.8
+Self-Attention + ft 56.4 84.7 91.3 42.1 73.3 82.2 71.8 66.2 91.0 96.3 51.8 84.7 92.6 80.4
+LSTM + ft 54.1 82.0 90.2 40.2 70.4 80.2 69.5 61.5 89.9 95.3 48.9 81.5 90.4 77.9
+(e) HGLMM (6K-D)
+Average Embedding + ft 60.5 86.4 92.9 43.8 73.9 83.3 73.5 67.2 91.7 97.5 53.0 84.0 92.2 80.9
+Self-Attention + ft 61.6 88.4 94.5 46.4 75.7 84.1 75.1 65.4 93.0 97.4 52.6 83.6 90.6 80.6
+LSTM + ft 51.4 80.7 89.4 39.1 68.7 78.6 68.0 65.0 90.7 96.1 51.2 82.8 90.9 79.4
+Table 7. Image-sentence retrieval results for adapted embeddings.
+9.8. Image-Sentence Retrieval Extended Multi-task Trained GrOVLE Metrics
+Embedding Network [57]
+Flickr30K MSCOCO
+Image-to-Sentence Sentence-to-Image Image-to-Sentence Sentence-to-Image
+Method R@1 R@5 R@10 R@1 R@5 R@10 mR R@1 R@5 R@10 R@1 R@5 R@10 mR
+GrOVLE w/o multi-task pretraining 47.3 78.9 87.0 33.2 65.1 76.8 64.7 56.3 87.4 94.3 44.5 79.0 88.5 75.0
++ multi-task pretraining w/o target task 49.0 79.7 87.7 35.7 66.2 76.3 65.8 60.8 87.3 94.7 46.7 79.7 89.3 76.4
++ multi-task pretraining w/ target task 51.3 68.7 80.7 36.2 64.3 66.3 66.2 65.5 91.6 96.7 51.2 83.6 91.4 80.2
++ multi-task pretraining w/ target task + ft 58.2 85.8 91.9 42.1 73.8 84.0 72.6 66.8 93.4 97.9 51.8 85.0 92.8 81.3
+Table 8. Image-sentence retrieval results for multi-task trained GrOVLE, created using the original set of task models.
+9.9. Image-Sentence Retrieval Additional Model Metrics
+Stacked Cross Attention Network (SCAN) [33]
+Flickr30K MSCOCO
+Image-to-Sentence Sentence-to-Image Image-to-Sentence Sentence-to-Image
+Method R@1 R@5 R@10 R@1 R@5 R@10 mR R@1 R@5 R@10 R@1 R@5 R@10 mR
+Training from scratch 60.8 86.8 92.0 43.0 72.1 81.9 72.8 69.9 94.3 97.4 56.6 87.1 94.0 83.2
+Word2Vec + ft 59.7 83.4 90.9 41.2 70.6 79.8 70.9 71.9 94.1 98.1 58.2 87.8 93.8 84.0
+FastText + ft 60.7 86.8 91.5 42.1 73.0 80.8 72.5 71.4 94.4 97.7 58.0 87.4 93.8 83.8
+GrOVLE (w/o multi-task pretraining) + ft 61.0 86.7 92.0 42.2 72.7 81.3 72.7 72.3 94.0 97.9 58.4 87.7 94.4 84.1
++ multi-task pretraining w/ target task + ft 65.8 89.8 94.2 46.8 76.2 84.5 76.2 74.4 94.8 97.8 59.1 87.8 94.2 84.7
+Table 9. Image-sentence retrieval results with the additional retrieval model for from-stratch, Word2Vec, FastText, GrOVLE, and multi-task
+trained GrOVLE representations. The multi-task trained GrOVLE was created from the full set of additional models.9.10. Phrase Grounding Additional Model Metrics
+Query Adaptive R-CNN [20]
+Flickr30k Entities ReferIt
+Method Accuracy
+Training from scratch 68.56 50.23
+Word2Vec + ft 69.78 52.97
+FastText + ft 69.27 53.01
+BERT 66.30 51.09
+GrOVLE (w/o multi-task pretraining) + ft 70.03 53.88
++ multi-task pretraining w/ target task + ft 71.08 54.10
+Table 10. Phrase grounding results with the additional grounding model for from-stratch, Word2Vec, FastText, BERT, GrOVLE, and
+multi-task trained GrOVLE representations. The multi-task trained GrOVLE was created from the full set of additional models.
+9.11. Text-to-Clip Extended Pretrained Embedding Metrics
+CITE [44]
+Method R@1 R@5 mIOU Average
+(a) Training from scratch
+Average Embedding 15.53 58.21 25.32 33.02
+Self-Attention 15.41 57.85 27.17 33.48
+LSTM 14.38 59.02 25.08 32.83
+(b) Word2Vec
+Average Embedding 15.91 56.08 26.85 32.95
+Average Embedding + ft 15.65 55.00 27.10 32.58
+Self-Attention 15.87 55.89 27.90 33.23
+Self-Attention + ft 15.81 55.48 28.48 33.26
+LSTM 16.27 57.94 26.97 33.73
+LSTM + ft 15.49 59.29 25.04 33.94
+(c) FastText
+Average Embedding 15.22 56.08 26.06 32.45
+Average Embedding + ft 15.69 53.72 26.62 32.01
+Self-Attention 15.92 56.14 27.87 33.31
+Self-Attention + ft 15.60 55.93 27.99 33.17
+LSTM 14.40 60.21 24.56 33.06
+LSTM + ft 14.80 58.02 24.71 32.51
+(d) Sentence-Level
+InferSent 14.33 56.10 25.18 31.87
+BERT 14.23 58.76 24.39 32.46
+Table 11. Text-to-clip results for pretrained embeddings on DiDeMo.9.12. Text-to-Clip Extended Adapted Embedding Metrics
+CITE [44]
+Method R@1 R@5 mIOU Average
+(a) Word2Vec + wn
+Average Embedding + ft 16.05 55.89 27.79 33.24
+Self-Attention + ft 16.05 57.73 27.16 33.65
+LSTM + ft 16.36 59.81 26.32 34.16
+(b) GrOVLE
+Average Embedding + ft 16.53 56.05 28.56 33.71
+Self-Attention + ft 15.60 58.16 25.67 33.14
+LSTM + ft 15.79 61.65 25.98 34.47
+(c) Visual Word2Vec
+Average Embedding + ft 14.05 56.90 24.23 31.73
+Self-Attention + ft 14.12 55.23 24.11 31.15
+LSTM + ft 14.03 58.52 24.31 32.29
+(d) HGLMM (300-D)
+Average Embedding + ft 15.96 54.67 27.24 32.62
+Self-Attention + ft 16.23 56.07 28.01 33.44
+LSTM + ft 15.89 59.84 25.81 33.85
+(e) HGLMM (6K-D)
+Average Embedding + ft 15.43 55.79 26.76 32.66
+Self-Attention + ft 15.60 57.82 27.30 33.57
+LSTM + ft 16.41 60.86 26.59 34.62
+Table 12. Text-to-clip results for adapted embeddings on DiDeMo.
+9.13. Text-to-Clip Extended Multi-task Trained GrOVLE Metrics
+CITE [44]
+Method R@1 R@5 mIOU Average
+GrOVLE w/o multi-task pretraining 16.34 60.84 26.17 34.45
++ multi-task pretraining w/o target task 16.94 58.90 27.88 34.57
++ multi-task pretraining w/ target task 16.96 59.40 28.09 34.82
++ multi-task pretraining w/ target task + ft 17.05 59.84 28.39 35.09
+Table 13. Text-to-clip results for multi-task trained GrOVLE on DiDeMo.
+9.14. Text-to-Clip Additional Model Metrics
+Temporal GroundNet (TGN) [5]
+Method R@1 R@5 mIOU Average
+Training from scratch 26.26 74.33 31.32 43.97
+Word2Vec + ft 25.98 74.11 32.06 44.05
+FastText + ft 26.13 74.23 30.53 43.64
+GrOVLE (w/o multi-task pretraining) + ft 25.54 73.98 34.24 44.59
++ multi-task pretraining w/ target task + ft 24.91 73.58 32.37 43.62
+Table 14. Text-to-clip results with the additional text-to-clip model for from-stratch, Word2Vec, FastText, GrOVLE, and multi-task trained
+GrOVLE representations on DiDeMo. The multi-task trained GrOVLE was created from the full set of additional models.9.15. Image Captioning Extended Pretrained Embedding Metrics
+ARNet [7]
+Method BLEU-4 CIDER METEOR
+(a) Training from scratch
+LSTM – – –
+LSTM + ft 26.7 89.7 24.3
+(b) Word2Vec
+LSTM 28.1 92.7 24.7
+LSTM + ft 28.5 94.0 24.8
+(c) FastText
+LSTM 28.5 92.7 24.7
+LSTM + ft 28.3 93.2 24.8
+Table 15. Image captioning results for pretrained embeddings on MSCOCO.
+9.16. Image Captioning Extended Adapted Embedding Metrics
+ARNet [7]
+Method BLEU-4 CIDER METEOR
+(a) Word2Vec + wn
+LSTM + ft 28.6 93.3 24.9
+(b) GrOVLE
+LSTM + ft 28.3 92.5 24.8
+(c) Visual Word2Vec
+LSTM + ft 28.8 94.0 24.9
+(c) HGLMM (300-D)
+LSTM + ft 28.7 94.0 24.9
+(c) HGLMM (6K-D)
+LSTM + ft 28.0 92.8 24.7
+Table 16. Image captioning results for adapted embeddings on MSCOCO.
+9.17. Image Captioning Extended Multi-task Trained GrOVLE Metrics
+ARNet [7]
+Method BLEU-4 CIDER METEOR
+GrOVLE w/o multi-task pretraining 28.5 92.7 24.7
++ multi-task pretraining w/o target task 28.8 93.3 24.7
++ multi-task pretraining w/ target task 28.5 92.7 24.7
++ multi-task pretraining w/ target task + ft 28.7 93.2 24.7
+Table 17. Image captioning results for multi-task trained GrOVLE on MSCOCO.
+9.18. Image Captioning Additional Model Metrics
+Neural Image Captioning (NIC) [56]
+Method BLEU-4 CIDER METEOR
+Training from scratch 18.2 62.5 20.3
+Word2Vec + ft 18.7 62.8 20.2
+FastText + ft 17.9 61.6 17.9
+GrOVLE (w/o multi-task pretraining) + ft 19.4 65.4 20.6
++ multi-task pretraining w/ target task + ft 19.4 65.1 20.9
+Table 18. Image captioning results with an additional captioning model for from-stratch, Word2Vec, FastText, GrOVLE, and multi-task
+trained GrOVLE representations on MSCOCO. The multi-task trained GrOVLE was created from the full set of additional models.Bottom-Up Top-Down Attention (BUTD) [1]
+Method BLEU-4 CIDER METEOR
+Training from scratch 35.2 109.8 27.2
+Word2Vec + ft 35.1 110.8 27.1
+FastText + ft 35.2 110.3 27.1
+GrOVLE (w/o multi-task pretraining) + ft 35.1 110.4 27.1
++ multi-task pretraining w/ target task + ft 35.7 111.6 27.3
+Table 19. Image captioning results with an additional captioning model for from-stratch, Word2Vec, FastText, GrOVLE, and multi-task
+trained GrOVLE representations on MSCOCO. The multi-task trained GrOVLE was created from the full set of additional models.
+9.19. Visual Question Answering Additional Model Metrics
+Bilinear Attention Network
+(BAN) [26]
+Method Accuracy
+Training from scratch 68.68
+Word2Vec + ft 69.91
+FastText + ft 69.91
+GrOVLE (w/o multi-task pretraining) + ft 69.36
++ multi-task pretraining w/ target task + ft 69.97
+Table 20. Visual Question Answering results with the additional VQA model for from-stratch, Word2Vec, FastText, GrOVLE, and multi-
+task trained GrOVLE representations on VQA v2. The multi-task trained GrOVLE was created from the full set of additional models.
