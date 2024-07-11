@@ -1,6 +1,7 @@
 import os
+import re
 import PyPDF2
-
+import unicodedata
 
 def convert_arxiv_papers_to_txt(folder_path, output_folder):
     for filename in os.listdir(folder_path):
@@ -12,7 +13,13 @@ def convert_arxiv_papers_to_txt(folder_path, output_folder):
                 pdf_reader = PyPDF2.PdfReader(pdf_file)
                 text = ""
                 for page in pdf_reader.pages:
-                    text += page.extract_text()
+                    page_text = page.extract_text()
+                    if page_text:
+                        # Normalize text to remove undefined characters
+                        page_text = unicodedata.normalize('NFKD', page_text)
+                        # Filter out non-text characters
+                        page_text = re.sub(r'[^a-zA-Z0-9\s.,;:!?\'"-]', '', page_text)
+                        text += page_text
 
             with open(txt_path, "w") as txt_file:
                 txt_file.write(text)

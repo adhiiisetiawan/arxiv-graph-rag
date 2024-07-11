@@ -1,1011 +1,0 @@
-Learning to Scale Multilingual Representations
-for Vision-Language Tasks
-Andrea Burns1, Donghyun Kim1, Derry Wijaya1, Kate Saenko1;2, and Bryan
-A. Plummer1
-1Boston University, Boston MA 02215, USA
-2MIT-IBM Watson AI Lab, Cambridge MA 02142, USA
-faburns4,donhk,wijaya,saenko,bplum g@bu.edu
-Abstract. Current multilingual vision-language models either require
-a large number of additional parameters for each supported language,
-or suer performance degradation as languages are added. In this pa-
-per, we propose a Scalable Multilingual Aligned Language Representa-
-tion (SMALR) that supports many languages with few model param-
-eters without sacricing downstream task performance. SMALR learns
-a xed size language-agnostic representation for most words in a multi-
-lingual vocabulary, keeping language-specic features for just a few. We
-use a masked cross-language modeling loss to align features with context
-from other languages. Additionally, we propose a cross-lingual consis-
-tency module that ensures predictions made for a query and its machine
-translation are comparable. The eectiveness of SMALR is demonstrated
-with ten diverse languages, over twice the number supported in vision-
-language tasks to date. We evaluate on multilingual image-sentence re-
-trieval and outperform prior work by 3-4% with less than 1/5th the
-training parameters compared to other word embedding methods.
-Keywords: Scalable Vision-Language Models, Multilingual Word Em-
-beddings, Image-Sentence Retrieval
-1 Introduction
-Learning a good language representation is a fundamental component of address-
-ing a vision-language task, such as phrase grounding [22,34] or visual question
-answering [3,17]. Many recent methods have demonstrated that learning text
-representations aligned to images can boost performance across many vision-
-language tasks over traditional text-only trained representations [8,19,29,37,38].
-This is often accomplished by using auxiliary vision-language tasks when learn-
-ing the language representation (such as image-sentence retrieval, as shown in
-Figure 1(a)). However, these methods often only support a single language. Al-
-though some work has addressed a multilingual scenario ( e.g., [16,23,41]), these
-Project page: http://ai.bu.edu/smalrarXiv:2004.04312v2  [cs.CV]  27 Aug 20202 A. Burns et al.
-(a) Multilingual image-sentence retrieval
- (b) MSCOCO multilingual retrieval
-Fig. 1: (a) presents multilingual bidirectional retrieval. We embed sentences in
-ten languages with SMALR, which is used to compute the highest scoring image.
-(b) shows the eect of the number of training languages on performance for prior
-work MULE [23] and LIWE [41]. LIWE is the original model, hereafter referred
-to as S-LIWE. The plot contains two points: L-LIWE, [41] trained with a larger
-embedding (120-D vs. 24-D) for fair comparison, in orange, and SMALR, in
-yellow. The points are scaled to the number of parameters, P; specically, their
-area is (P
-106)3
-2. SMALR is able to outperform all prior work with few parameters
-methods do not scale well to support many languages in terms of memory or
-performance (see Figure 1(b)). As the number of languages grows, methods like
-LIWE [41] that use character-based recognition systems can save memory but
-suer from performance degradation. In contrast, methods that learn to align
-word embeddings across languages can maintain (or even improve) performance
-as languages are added ( e.g., [16,23]), but require additional parameters for the
-word embeddings that represent each new language's vocabulary.
-This becomes a challenge when scaling to support many languages, as an
-increasing majority of trainable parameters are required for representing each
-language ( e.g.93% of parameters of [23] with ten languages). While pre-
-trained word embeddings could be used without ne-tuning, e.g. Multilingual
-BERT [13] or MUSE [11], this comes at a signicant cost in downstream task
-performance [8,23].
-To address this trade-o between multilingual capacity and performance,
-we propose a Scalable Multilingual Aligned Language Representation (SMALR)
-model, which we demonstrate achieves strong task performance while also being
-highly compact compared to state-of-the-art word embedding methods [13,24,26].
-As seen in Figure 1, LIWE drops over 10% in performance going from supporting
-one to ten languages. MULE slightly increases performance with more languages,
-but requires 6x more parameters compared to its single language model. Our ap-
-proach, SMALR, outperforms both with only 1/5th the parameters of MULE.
-We learn to eciently represent each language by separating our language em-
-bedding into language-specic and language-agnostic token representations. As
-language follows a long-tailed distribution, only a few words occur often, withSMALR 3
-large portions of tokens occurring very rarely. For example, in the MSCOCO
-dataset [28] there are 25,126 unique tokens, but 61% of them occur less than 4
-times. This suggests that having unique representations for every token in the
-vocabulary is unnecessary, as only a subset would aect downstream task per-
-formance signicantly. Thus, we use a Hybrid Embedding Model (HEM) that
-contains language-specic embeddings for the common tokens, thereby provid-
-ing a good representation for each language, and a compact language-agnostic
-representation for rare and uncommon words. This results in a model that needs
-far fewer unique embeddings than prior work without sacricing performance.
-We learn how to assign tokens to the language-agnostic representation in
-a pretraining step, which uses monolingual FastText embeddings [7] to map
-similar words to the same token, e.g. mapping \double-decker" in English and
-\imp eriale" in French to the same shared token. Once we obtain our language
-embeddings, our goal is to align them so that semantically similar words, even
-those from other languages, are embedded nearby. To accomplish this, we use
-a multilingual masked language model, where we randomly mask words and
-then predict them based on context. Unlike similar masking approaches used
-to train models such as BERT [13], we mask words of sentences from any two
-languages, say German and Chinese, which are semantically similar sentences
-referring to the same image, and use the context from each to predict both
-masked tokens. To further encourage cross-language alignment, we also use an
-adversarial language classier and neighborhood constraints that have been used
-in prior work [23]. These universal language embeddings are provided as input to
-a multimodal model that learns to relate them to images. Finally, we use a cross-
-lingual consistency module that uses machine translations to reason about the
-image-sentence similarity across multiple languages, which we show signicantly
-boosts performance. Figure 2 contains an overview of our model.
-We use bidirectional image-sentence retrieval as the primary evaluation of
-our multilingual language representation. In this task, the goal is to retrieve a
-relevant sentence from a database given an image or to retrieve a relevant image
-from a database given a sentence. We augment current multilingual datasets
-Multi30K [6,14,15,43] and MSCOCO [27,28,31] using machine translations so
-that every image has at least ve sentences across ten diverse languages: En-
-glish (En), German (De), French (Fr), Czech (Cs), Chinese (Cn), Japanese (Ja),
-Arabic (Ar), Afrikaans (Af), Korean (Ko), and Russian (Ru). See the supple-
-mentary for details on our data augmentation procedure. This constitutes the
-highest number of languages used in multilingual learning for vision-language
-tasks to date, supporting more than double the number of visually-semantically
-aligned languages compared to prior work [5,11,16,23,36,41].
-We list the contributions of our work below:
-{SMALR, a scalable multilingual model for training visually-semantically
-aligned word embeddings that outperforms the state-of-the-art on multi-
-lingual image-sentence retrieval while also requiring few model parameters.
-{A comparison to four types of vocabulary reduction methods that serve as
-baselines to complement our evaluation against prior work.4 A. Burns et al.
-Fig. 2: The contributions of SMALR are in blue: a Hybrid Embedding Model
-(HEM), a Masked Cross-Language Model (MCLM), and a Cross-Lingual Con-
-sistency stage (CLC). HEM embeds input sentences as a mixture of language-
-specic and language-agnostic representations using a hard attention mecha-
-nism. The MCLM component provides an additional loss to enforce language
-alignment, while also augmenting the original dataset with masked sentences
-{A Masked Cross-Language Modeling (MCLM) procedure that further aligns
-the multilingual embedding, stabilizing variance in performance over all lan-
-guages, and serves as an additional data augmentation technique.
-{A Cross-Lingual Consistency (CLC) module, the rst of its kind, that learns
-how to aggregate an ensemble of predictions across languages made with
-machine translations, which, combined with our SMALR architecture, results
-in a total improvement over the state-of-the-art by 3-4%.
-2 Related Work
-Transformer [39] based representation learning models have become increasingly
-popular since the release of BERT [13]. BERT transfers surprisingly well to other
-languages, despite having no multilingual training data or explicit multilingual
-loss [42]. However, [33] demonstrates that there is an unequal transfer between
-dierent language pairs, notably those with typological dierences to English.
-Both BERT and M-BERT, its multilingual extension, have been shown to be
-dependent on the number of parameters in the model, which reaches 110M pa-
-rameters for the smaller base model [21]. Thus, as also shown in [1], a large
-number of additional parameters is needed to counter the performance degrada-
-tion caused by training with many languages. Using the better performing large
-BERT model is impractical for many vision-language tasks as it contains 340M
-parameters, leaving little room in many GPUs memory for anything else.
-Along with language-only BERT variants, a burst of multimodal BERT-like
-models have been designed specically for vision-language tasks [26,29,37,38].SMALR 5
-More traditional word embedding models have also been designed for multimodal
-tasks with the use of either visual-word co-occurrence frequencies [19], multi-task
-training [32], or both [8], and require signicantly less training data to reach
-similar performance. While these eorts evaluate on many multimodal tasks such
-as Visual Question Answering [3], Visual Commonsense Reasoning [44], Phrase
-Grounding [34], and more, they only train and evaluate on a single language.
-Recently, several multilingual methods have shown better performance on
-vision-language tasks than complicated transformer-based methods. LIWE [41]
-is a light-weight character embedding model that can represent many languages
-with few model parameters. LIWE uses a bidirectional gated recurrent unit
-(GRU) [9] to aggregate 24-D character embeddings for a text query that is en-
-couraged to closely embed semantically similar images and sentences in other
-languages. Although LIWE represents a single language well, it suers from
-signicant performance loss when co-training on multiple languages as shown
-in Figure 1(b). Gella et al . [16] learns how to relate an image to language-
-specic representations and also constrain semantically similar sentences across
-languages to embed nearby each other. MULE [23] learns a universal language
-embedding so that it can use a single language branch in the multimodal model,
-signicantly reducing the number of parameters required to represent each lan-
-guage compared to Gella et al . In addition, MULE combined the same cross-
-lingual constraints used in both Gella et al . and LIWE with an adversarial
-language classier to further encourage alignment across languages. This results
-in a model that slightly improves performance as more languages are added as
-shown Figure 1(b). However, MULE learns a word-level embedding that requires
-signicantly more parameters than LIWE (approximately 8x more with ten lan-
-guages), and thus capacity concerns remain when scaling to many languages.
-3 Scalable Multilingual Aligned Language Representation
-In this section we describe how we train our Scalable Multilingual Aligned Lan-
-guage Representation (SMALR) to bridge the gap between scalability and down-
-stream vision-language task performance. To accomplish this, we assume we are
-provided with an image and sentences that describe it in multiple languages.
-The intuition behind our model is to rst learn a universal language embedding
-which represents all languages, and then learn to relate it to corresponding im-
-ages using a multimodal model. In our experiments our multimodal model uses a
-modied version [23] of the Embedding Network architecture [40], although our
-approach can be easily adapted to use other multimodal models. After obtaining
-image and sentence features, the Embedding Network uses two branches, one for
-each modality, and projects them into a joint semantic space where distances are
-meaningful. The image branch consists of two fully connected layers, while the
-language branch obtains a sentence representation by passing the nal hidden
-state of a GRU through a fully connected layer.
-Our approach is architecturally similar to MULE [23], but with notable
-distinctions. First, MULE learned a unique word embedding for every word6 A. Burns et al.
-in every language ( i.e., no shared tokens), whereas we learn an ecient uni-
-versal embedding with our Hybrid Embedding Model (HEM) that consists of
-a mix of language-agnostic and language-specic word representations (Sec-
-tion 3.1). Then, we align our language representations using a novel Masked
-Cross-Language Model (MCLM) (Section 3.2) on both the input of the mul-
-timodal model and the nal language representation of the multimodal model.
-This acts to supplement the neighborhood constraints, adversarial language clas-
-sier, and image-sentence matching losses used by MULE that we briey review
-in Section 3.3. Finally, we also propose a Cross-Lingual Consistency (CLC) mod-
-ule that boosts model performance in downstream vision-language tasks using
-machine translation (Section 3.4). See Fig. 2 for an overview of our approach.
-3.1 Ecient Multilingual Learning with a Hybrid Embedding
-Model
-A signicant challenge in multilingual representation learning is scaling to many
-languages, especially when there is a wide disparity in the available training data
-of dierent languages. This is more apparent for vision-language tasks where an-
-notations are very expensive to collect, making it more dicult to learn a good
-visually-semantically aligned language representation than in monolingual set-
-tings [8,26]. Inspired by work in low-resource neural machine translation [18], we
-propose a Hybrid Embedding Model (HEM) which projects low-frequency words
-across languages into a shared latent vocabulary, while allowing the top- Kmost
-frequent words in each language to maintain their own unique (language-specic)
-representation. The output of the HEM is the universal language embedding that
-is used as input to the multimodal model in Fig. 2 and is also used in the lan-
-guage alignment losses (Section 3.2 and Section 3.3). The value of Kcan be
-determined experimentally for any targeted downstream task; we use K= 5000.
-The language-specic word embeddings used for common words roughly fol-
-low the implementation used in prior work [18,23]. We begin by using a monolin-
-gual pretrained FastText embedding [11] that has been reduced from 300-D to
-50-D using Principal Component Analysis (PCA) [30]. These reduced features
-are used as input to a fully connected layer that projects them into a 512-D uni-
-versal embedding space that we align across languages; the alignment is applied
-with the language-agnostic representations as well (see Section 3.2 and 3.3 for
-details on our language alignment procedures).
-While our language-agnostic representation is similar to Gu et al . [18], it
-has some key dierences. Specically, Gu et al. project all words into a univer-
-sal embedding space with learned language-specic mappings. A soft-attention
-module is used over the universal embedding features (as it assumes an aligned
-cross-lingual input) to obtain mixing weights; these weights are then used to
-combine the language-agnostic features. While this does enable feature sharing
-across languages, it does not reduce the number of trainable parameters in the
-network, as a language-specic representation is still necessary for all words in
-the vocabulary. Additionally, aggregating the features in the latent vocabulary
-using soft-attention weights per-word is costly, especially for large vocabularies.SMALR 7
-Instead, we perform a pretraining step where we learn both the initial represen-
-tation of the latent vocabulary as well as how to assign the infrequent words to
-entries in it. We use a hard attention mechanism that is directly predicted from
-FastText features, in which each vocabulary word is mapped to only a single
-language-agnostic token, as opposed to an interpolation of many. This allows us
-to avoid both computing a language-specic representation for the uncommon
-words and aggregating the latent vocabulary features on a per-word basis.
-To obtain our latent shared vocabulary in the pretraining step, we learn to
-embed semantically similar sentences near each other using a triplet loss. More
-formally, given a triplet of items ( x;y+;y ) that can be decomposed into a
-positive pair ( x;y+) and a negative pair ( x;y ), a triplet loss is computed as:
-Ltriplet (x;y+;y ) = max(0;m+d(x;y+) d(x;y )) (1)
-whered(x;y) is a distance function, and mis a scalar parameter. We use cosine
-distance for all triplet losses and set m= 0:05. Following the methodology
-of [23,40], we construct minibatches by providing semantically similar sentence
-pairs as input and consider any non-paired sentence as a negative example. These
-negatives are randomly sampled from each minibatch. We enumerate all triplets
-in the minibatch and compute the loss over the top- Nmost violated constraints,
-whereN= 10 in our experiments. Note that these sentences may not come
-from the same language, so sentences referring to the same image in dierent
-languages are also used as positive pairs. To predict which latent embedding
-we map a source word to, we use sentence representations obtained by feeding
-FastText embeddings into a fully connected layer. With this mapping, we average
-the latent embeddings of each word for use in Eq. (1) during the pretraining step,
-which has been shown to be an ecient, high-performing representation [4,8].
-Instead of deterministically mapping to the latent token which achieves the
-best score, we randomly choose from the top Mscoring tokens with probability
-p, which we refer to as exploration parameters. This helps ensure that spurious
-mappings are not learned, typically resulting in a 2% performance improvement
-(see supplementary for a detailed comparison). While we freeze the latent token
-assignments when training the full model, we allow the features themselves to
-be ne-tuned. Our experiments use a latent vocabulary size of 40 Ktokens, with
-exploration parameters p= 0:2,M= 20. In practice not all latent tokens are
-used at the end of pretraining; these are dropped when training the full model.
-3.2 Masked Cross-Language Modeling (MCLM)
-Masked Language Modeling has proven to be useful in training language rep-
-resentations by masking some tokens of an input sentence and then trying to
-predict the missing tokens [13]. We present a generalization of this approach
-to a multilingual scenario to encourage stronger cross-language alignment. In
-MCLM, we assume we have paired sentences across dierent languages. These
-sentences need not be direct translations of each other, but, as our experiments
-will show, they simply need to be semantically related. This is important as8 A. Burns et al.
-vision-language datasets do not always have paired text queries that are direct
-translations, but are often independently generated instead ( e.g. [15,31,27]).
-Traditional Masked Language Modeling makes predictions about a single
-masked token using its surrounding words as context. The words immediately
-surrounding a token referring to the same entity between sentences in dierent
-languages may vary greatly due to dierences in grammar. Thus, even using a
-dictionary between languages to identify word correspondences may not provide
-useful context. Instead, we use the intuition that semantically similar sentences
-should contain comparable information across languages, so a sentence in one
-language could be used as context to predict missing information in another.
-Conneau et al . [10] similarly use masking for improved language alignment.
-However, our approach does not require parallel data and may sample amongst
-any of the languages. Lastly, unlike [10] which computes its loss on the predicted
-word, our objective in Eq. (2) is computed on the fully reconstructed sentences.
-More formally, for a pair of languages ( i;j), we obtain sentences ( Si;Sj) such
-that both sentences describe the same image ( i.e., they are semantically similar
-to each other). Then, we randomly replace some portion of their words with
-a special MASK token to obtain masked representations ( Sm
-i;Sm
-j). These are
-concatenated together and fed into a fully connected layer that is shared across
-language pairs to predict the missing information in both sentences ( S0
-i;S0
-j). Our
-MCLM loss then compares this to the unmasked sentences, i.e.,
-Lmask =jj`2(Sm
-i+S0
-i) `2(Si)jj+jj`2(Sm
-j+S0
-j) `2(Sj)jj; (2)
-where`2identies vectors forced to have unit norm. Both average embedding
-and LSTM representations are used; details can be found in the supplementary.
-We compute the masking loss in Eq. (2) for all unique pairs of languages in our
-experiments, and found masking 20% of the words in the sentences worked best.
-3.3 Multilingual Visual-Semantic Alignment
-In this section we briey review the visual-semantic alignment constraints used
-by MULE [23] that we also employ. First, we use neighborhood constraints [40]
-that we shall refer to as Lncto encourage similar sentences to embed nearby
-each other using a triplet loss ( i.e., Eq. (1)). Just as with the MCLM module
-described in Section 3.2, these neighborhood constraints are applied to both the
-universal language embedding ( i.e., the output of the HEM module) as well as
-the nal language representation from the multimodal model as shown in Fig. 2.
-The second component of the MULE alignment constraint consists of an adver-
-sarial language classier. We shall refer to this classier loss as Ladv, using the
-approach of [23], whose goal is to ensure that the representations of the dier-
-ent languages in the universal embedding have similar feature distributions. The
-last component of the MULE constraint is used to train the multimodal model
-to embed the images and sentences near each other using a triplet loss. This
-uses a bidirectional triplet loss function, i.e., for image Iand paired sentencesSMALR 9
-(Q+;Q ) representing a positive and negative sentence pair, respectively, and
-sentenceQand its paired images ( I+;I ), this multimodal loss would be,
-Lmm=Ltriplet (I;Q+;Q ) +1Ltriplet (Q;I+;I ) (3)
-where1is a scalar parameter, which we set to 1.5 in our experiments. In
-addition to using the unmasked sentence representations for the multimodal
-loss, we observe that most sentences retain their overall semantic meaning if you
-remove just a few words at random. Using this intuition, we also compute Eq. (3)
-using the masked sentences ( Sm
-i;Sm
-j) from the MCLM module, which we found
-provides a small, but consistent improvement to performance. As a reminder, all
-triplet losses use the implementation details ( e.g. hyperparameter settings and
-hard-negative mining) as described in the rst part of Section 3. Our total loss
-function to train SMALR is then,
-LSMALR =Lmm+2Lmask +3Ladv+4Lnc (4)
-where2 4are scalar parameters that we set to (1e-4, 1e-6, 5e-2), respectively.
-3.4 Cross-Lingual Consistency
-Prior work on multilingual vision-language tasks has primarily focused on how to
-change training procedures or architectures to support multiple languages, and
-does not fully take advantage of this multilingual support at test time. In par-
-ticular, we argue that semantically similar sentences in dierent languages may
-capture complementary information, and therefore, considering the predictions
-made in other languages may improve performance. We validate our intuition by
-obtaining machine translations of a query in the other languages supported by
-our model. More formally, suppose we have a set of languages L. Given a query
-qin language li2L, we translate qto all other supported languages in Lnflig
-and use this as input to our Cross-Lingual Consistency (CLC) module.
-We propose two variants of CLC: CLC-A and CLC-C. CLC-A simply averages
-matching scores over all languages, and does not require any additional param-
-eters. CLC-C, on the other hand, uses a small Multilayer Perceptron (MLP) to
-aggregate the scores of each language, which enables us to consider the relative
-information present in each language's predictions. This MLP has two layers
-with input sizejLjand 32 hidden layer units ( i.e., it has 352 learnable parame-
-ters) and all parameters are initialized with uniform weight. We train the CLC-C
-module separately to SMALR using the validation set for 30 iterations. No mini-
-batches are employed ( i.e., it is trained with all image-sentence pairs at once)
-and it is trained using the multimodal triplet loss described in Eq. (3).
-4 Experimental Setup
-Datasets. SMALR is evaluated on bidirectional retrieval with Multi30K [6,14,15]
-and MSCOCO [27,28,31]. The Multi30K dataset is built o of Flickr30K [43],10 A. Burns et al.
-which originally contained 31,783 images and ve English descriptions per im-
-age. [6,14,15] obtained annotations in German, French, and Czech, resulting in a
-four-language dataset. Multi30K contains ve descriptions per image in English
-and German, but only one per image in French and Czech; the latter two were
-collected as human-generated translations of the English annotations. We use
-the 29K/1K/1K train/test/val splits from the original dataset [43].
-MSCOCO is approximately four times the size of Multi30K, with 123,287
-images. There are ve human-generated captions per image in English, but sig-
-nicantly fewer in Chinese and Japanese. YJ Captions [31] introduced Japanese
-annotations for MSCOCO, but only provides ve captions per image for a subset
-of about 26K images. [27] extended MSCOCO with a total of 22,218 Chinese
-captions for 20,341 images. We use train/test/validation splits as dened in [23].
-We augment both datasets with machine translations so every image con-
-tains at least ve sentences for ten languages: English, German, Czech, French,
-Chinese, Japanese, Arabic, Afrikaans, Korean, and Russian. All models we com-
-pare to are trained using this augmented training set. For languages with no
-human-generated sentences, we use machine translations at test time as well.
-We found using translations at test time did not aect the relative performance
-of dierent methods in our experiments. See the supplementary for details.
-Visual Features. We use ResNet-152 [20] features trained on ImageNet [12] as
-input to the Embedding Network (EmbN) [40]. As done in [23], we average visual
-features over ten 448x448 image crops. This generates an image embedding of
-size 2048, which is then passed through a pair of fully connected layers. The
-resulting 512-D embedding can be used in the shared image-sentence embedding
-space. The learning rate was set to 1 e 3for the HEM and LA models; remaining
-hyperparameters are consistent with those in [23].
-Note that all LIWE [41] experiments use bottom-up Faster R-CNN [35] visual
-features trained on Visual Genome [25]. This represents a signicant increase in
-the annotation cost compared to our approach, which doesn't use these anno-
-tations. Visual Genome also contains MSCOCO [28] images, which means that
-there is train/test contamination, as LIWE's features are extracted using the
-pretrained, publicly available model from [2].
-Metrics. For our results, we report the mean Recall (mR) across Recall@ K, with
-K2[1;5;10], for both the image-sentence and sentence-image directions per
-language. All recall values can be found in the supplementary. We also provide
-an average mR across all languages to serve as a global performance metric: \A"
-in Tables 1 and 2. The human average, \HA," refers to the average mR over the
-languages which have human-generated annotations ( i.e. English, Chinese, and
-Japanese for MSCOCO, and English, German, French, and Czech for Multi30K).
-Comparative Evaluation. We compare the following methods:
-{ Frequency Thresholding: We drop words that occur fewer than ttimes
-in the training set. Results are reported in Figure 3.
-{ PCA Reduction: We use PCA [30] to reduce the size of the initial 300-D
-FastText word embeddings. Results are reported in Figure 3.SMALR 11
-{ Dictionary Mapping: We map words that occur fewer than ttimes in non-
-English languages to English using dictionaries [11]. By mapping rare words
-in other languages to English, some information may be lost, but the token
-will still exist indirectly in the vocabulary. Results are reported in Figure 3.
-{ Language-Agnostic (LA): We compare to only using a latent vocabulary
-as described in Section 3.1 with 40K tokens, i.e. not using any language
-specic features. Results are in Tables 1 and 2.
-{ HEM: We evaluate our full hybrid embedding model (Section 3.1), which
-uses a mix of language-agnostic and language-specic representations. This
-baseline does not include MCLM nor CLC. Results are in Tables 1 and 2.
-{ SMALR: Our base SMALR is composed of the HEM (Section 3.1) and
-MCLM (Section 3.2) components of our model. We compare to our complete
-SMALR which makes use of CLC variants (CLC-A and CLC-C, described
-in Section 3.4). Results are in Tables 1 and 2.
-Note that the rst line of Tables 1 and 2, Trans To En , refers to using machine
-translation on non-English sentences, and then using an English-only trained
-Embedding Network [40], providing a strong baseline method to compare to.
-5 Multilingual Image-Sentence Retrieval Results
-We provide results for MSCOCO and Multi30K in Table 1 and Table 2, respec-
-tively, which contain comparisons to prior work on fewer languages (a), adap-
-tations of prior work to our setting (b), and our model variants (c). SMALR
-obtains consistent performance gains when evaluating on ten languages over the
-state-of-the-art (S-LIWE, line 3 (b)) while also being more ecient than high-
-performing models like MULE (line 5 (b)). SMALR outperforms S-LIWE by
-11 points on MSCOCO and 5.8 points on Multi30K (line 3 (c)versus 3 (b)).
-A parameter comparison is later shown in Figure 3. SMALR's initial Language-
-Agnostic (LA) baseline alone is able to boost performance over previous scalable
-method LIWE by 2-7 points. The HEM, which combines language-agnostic and
-language-specic embeddings as described in Section 3.1, consistently improves
-upon the fully language-agnostic vocabulary, even though they share the same
-latent vocabulary size of 40K tokens. This points to the utility of our hybrid
-embedding space, which improves performance upon LA by 3.4 average mR on
-MSCOCO and 2.4 average mR on Multi30K while adding only a few parameters.
-When MCLM losses are added, referred to as SMALR in Tables 1 and 2
-(line 3 (c)), mR improves for nearly all languages. This is signicant, because we
-nd more compact models like LIWE degrade with additional languages when
-using the same number of parameters (S-LIWE). The LA baseline is still able
-to outperform L-LIWE on MSCOCO and Multi30K, in which LIWE learns an
-embedding ve fold larger to try to compensate for the increased number and
-diversity of languages (120-D instead of 24-D embedding). This suggests that the
-masking process may help regain some semantic information that is lost when
-tokens are mapped to the language-agnostic space.12 A. Burns et al.
-Table 1: MSCOCO multilingual bidirectional retrieval results. (a) contains re-
-sults from prior work, (b) contains reproductions of two state-of-the art methods
-evaluated for our scenario using their code, and (c) contains variants of our model
-Model En De1Fr1Cs1Cn JaAr1Af1Ko1Ru1HA A
-(a)Trans. to En [23] 75.6 { { {72.2 66.1 { { { {71.3 {
-EmbN [40] 76.8 { { {73.5 73.2 { { { {74.5 {
-PAR. EmbN [16] 78.3 { { {73.5 76.0 { { { {75.9 {
-MULE [23] 79.5 { { {74.8 76.3 { { { {76.9 {
-(b)(1) S-LIWE [41]280.9 { { { {73.6 { { { { { {
-(2) S-LIWE277.4 { { { {66.6 { { { { { {
-(10) S-LIWE277.3 67.4 68.5 66.9 64.5 65.8 63.8 66.2 63.1 63.6 69.2 66.7
-(10) L-LIWE279.1 71.2 70.3 70.1 70.0 69.6 67.5 68.9 66.2 69.6 72.9 70.3
-MULE [23] 79.0 77.2 76.8 77.8 75.6 75.9 77.2 77.8 74.3 77.3 76.8 76.9
-(c)Language-Agnostic 75.0 74.3 74.1 73.4 72.3 72.1 74.4 74.7 71.6 72.7 73.1 73.5
-HEM 78.7 77.3 76.4 77.9 76.7 76.3 77.0 76.775.5 77.0 77.3 76.9
-SMALR 79.378.477.878.6 76.7 77.277.978.2 75.178.0 77.777.7
-SMALR-CLC-A 81.2 { { {79.6 75.0 { { { {78.6 {
-SMALR-CLC-C 81.5 { { {80.177.5 { { { {79.7 {
-1uses translations from English for testing
-2visual features trained using outside dataset that includes some test images
-We next evaluate two CLC variants that use machine translations at test
-time (described in Section 3.4) on top of SMALR: an average ensemble over all
-languages (CLC-A), and a weighted ensemble which makes use of a simple clas-
-sier (CLC-C). CLC-A uses no additional test-time parameters, and increases
-the human average performance by 1-3 points, with a larger gain on Multi30K.
-This may be because more languages can be leveraged on Multi30K (four versus
-three, compared to MSCOCO). Surprisingly, English performance improves the
-most amongst CLC-A metrics on Multi30K, demonstrating that certain image-
-sentence pairs can be better retrieved from the queries in other languages, which
-may better capture the visual semantics of the same image. CLC-C further im-
-proves the human average over CLC-A by 0.9 points on MSCOCO and 0.5 points
-on Multi30K, using negligible additional parameters.
-Parameter reduction method comparison . We present a comparison of
-baseline vocabulary reduction techniques, described in Section 4, against prior
-works LIWE and MULE, in addition to our method SMALR (consisting of only
-HEM and MCLM components in Figure 3). The frequency thresholding and dic-
-tionary mapping labels represent the threshold with which we drop infrequent
-words or map them to English ( e.g. the blue 50 data point represents dropping
-words that occur fewer than 50 times). PCA point labels represent the dimen-
-sionality we reduce our input vectors to ( e.g. 300D!50D, 100D, or 200D).
-In our comparison of vocabulary reduction methods, frequency thresholding
-witht= 50 and vanilla language-agnostic vocabularies (LA) obtain better per-SMALR 13
-Table 2: Multi30K multilingual bidirectional retrieval results. (a) contains results
-from prior work, (b) contains reproductions of two state-of-the art methods
-evaluated for our scenario using their code, and (c) contains variants of our
-model
-Model En De Fr CsCn1Ja1Ar1Af1Ko1Ru1HA A
-(a)Trans. to En [23] 71.1 48.5 46.7 46.9 { { { { { {53.3 {
-EmbN [40] 72.0 60.3 54.8 46.3 { { { { { {58.4 {
-PAR. EmbN [16] 69.0 62.6 60.6 54.1 { { { { { {61.6 {
-MULE [23] 70.3 64.1 62.3 57.7 { { { { { {63.6 {
-(b)(1) S-LIWE [41]276.372.1 { { { { { { { { { {
-(2) S-LIWE275.6 66.1 { { { { { { { { { {
-(10) S-LIWE275.2 65.2 51.8 50.0 54.1 56.2 62.7 62.8 54.5 63.1 60.6 59.6
-(10) L-LIWE275.9 66.7 53.3 51.3 56.9 56.3 65.0 63.7 57.1 65.4 61.9 61.2
-MULE [23] 70.7 63.6 63.4 59.464.267.3 65.8 67.3 63.6 65.4 64.3 65.1
-(c)Language-Agnostic 65.5 61.3 59.9 54.0 59.4 64.7 63.9 66.5 60.3 60.3 60.2 61.6
-HEM 69.2 62.8 63.3 60.0 62.4 66.3 64.5 66.8 62.3 62.6 63.8 64.0
-SMALR 69.6 64.7 64.5 61.1 64.0 66.766.067.464.265.7 65.065.4
-SMALR-CLC-A 74.1 68.9 65.2 64.5 { { { { { {68.2 {
-SMALR-CLC-C 74.5 69.865.964.8 { { { { { {68.7 {
-1uses translations from English for testing
-2visual features trained using outside dataset
-formance than both LIWE variants on Multi30K, without adding signicantly
-more parameters, as shown on the right of Figure 3. While more model parame-
-ters are needed for MSCOCO, due to the increased vocabulary size, all baselines
-and prior work MULE signicantly outperform LIWE. This demonstrates that
-more-complex character-based models do not necessarily obtain competitive per-
-formance with few parameters when addressing a larger multilingual scenario.
-SMALR outperforms all baselines for MSCOCO, as seen on the left of Fig-
-ure 3, outperforming S-LIWE by over 10 points and using fewer parameters
-than L-LIWE. We also nd that average mean recall performance on MSCOCO
-is more robust to vocabulary reduction, with a maximum range of about 1.5
-average mR between the most extreme reduction and the least. We believe this
-may be due to the size discrepancy between the two datasets, as MSCOCO is
-approximately four times the size of Multi30K. PCA reduction appears to have
-a more linear eect as parameters increase on both datasets. Since Multi30K
-performance is more sensitive to the number of parameters, it is signicant that
-our SMALR model, in green, (which does not yet make use of our cross-lingual
-consistency module in Figure 3) outperforms all other models while having less
-than 20M parameters, 1/5th the parameter count of high performing MULE.
-In addition to SMALR outperforming MULE on both datasets while using
-signicantly fewer trainable parameters, we nd MULE even fails to outperform
-simple baselines such as dictionary mapping on MSCOCO. This exposes that14 A. Burns et al.
-Fig. 3: We compare three types of vocabulary reduction: frequency thresholding,
-PCA dimensionality reduction, and mapping rare words to English with the use
-of dictionaries. The left-hand side evaluates on MSCOCO, the right on Multi30K.
-We have additional standalone points for the small LIWE (S-LIWE), large LIWE
-(L-LIWE), MULE, language agnostic vocabulary (LA), and our model, SMALR
-the large number of parameters used in MULE are unnecessary for performance
-gains. While SMALR uses more parameters during training than S-LIWE, we
-have far fewer test-time parameters. We reduce the computation needed for
-evaluation by using precomputed language representations from training. This
-reduces the entire SMALR model to the image-sentence matching model with
-our CLC add-on, totaling only 7.1M parameters, now fewer than S-LIWE.
-6 Conclusion
-We have presented a Scalable Multilingual Aligned Representation (SMALR),
-which addresses the trade-o between multilingual model size and downstream
-vision-language task performance. Our approach is modular, and thus can be
-used as a drop-in language representation for any vision-language method/task.
-SMALR outperforms all prior work on the task of multilingual image-sentence
-retrieval on average across ten diverse languages, with the use of a hybrid embed-
-ding model, masked cross-language modeling loss, and cross-lingual consistency
-module. Our hybrid embedding model signicantly reduces the input to a lan-
-guage model by mapping most tokens to a xed size, shared vocabulary. The
-masking procedure aligns our diverse set of languages and uses the multimodal
-model to provide additional alignment with visual grounding. We nd that both
-cross-lingual consistency modules better aggregates retrieved results, boosting
-performance with minimal additional parameters. This is all accomplished with
-less than 20M trainable parameters, signicantly reducing oversized prior work
-by 1/5th, while improving performance over the state-of-the-art by 3-4%.
-Acknowledgements This work is funded in part by the NSF, DARPA LwLL,
-and DARPA XAI grants, including NSF grant 1838193.SMALR 15
-References
-1. Aharoni, R., Johnson, M., Firat, O.: Massively multilingual neural machine trans-
-lation. In: Proceedings of the 2019 Conference of the North American Chapter
-of the Association for Computational Linguistics: Human Language Technologies,
-Volume 1 (Long and Short Papers) (Jun 2019)
-2. Anderson, P., He, X., Buehler, C., Teney, D., Johnson, M., Gould, S., Zhang,
-L.: Bottom-up and top-down attention for image captioning and visual question
-answering. In: The IEEE Conference on Computer Vision and Pattern Recognition
-(CVPR) (2018)
-3. Antol, S., Agrawal, A., Lu, J., Mitchell, M., Batra, D., Zitnick, C.L., Parikh, D.:
-VQA: Visual Question Answering. In: The IEEE International Conference on Com-
-puter Vision (ICCV) (2015)
-4. Arora, S., Liang, Y., Ma, T.: A simple but tough-to-beat baseline for sentence em-
-beddings. In: International Conference on Learning Representations (ICLR) (2017)
-5. Artetxe, M., Labaka, G., Agirre, E.: Learning principled bilingual mappings of
-word embeddings while preserving monolingual invariance. In: Empirical Methods
-in Natural Language Processing (EMNLP). pp. 2289{2294 (2016)
-6. Barrault, L., Bougares, F., Specia, L., Lala, C., Elliott, D., Frank, S.: Findings
-of the third shared task on multimodal machine translation. In: Proceedings of
-the Third Conference on Machine Translation: Shared Task Papers. pp. 304{323
-(2018)
-7. Bojanowski, P., Grave, E., Joulin, A., Mikolov, T.: Enriching word vectors with
-subword information. Transactions of the Association for Computational Linguis-
-tics (TACL) 5, 135{146 (2017)
-8. Burns, A., Tan, R., Saenko, K., Sclaro, S., Plummer, B.A.: Language features
-matter: Eective language representations for vision-language tasks. In: The IEEE
-International Conference on Computer Vision (ICCV) (2019)
-9. Cho, K., van Merrienboer, B., G ul cehre, C  ., Bougares, F., Schwenk, H., Ben-
-gio, Y.: Learning phrase representations using RNN encoder-decoder for statis-
-tical machine translation. In: Empirical Methods in Natural Language Processing
-(EMNLP) (2014)
-10. Conneau, A., Lample, G.: Cross-lingual language model pretraining. In: Advances
-in Neural Information Processing Systems (NeurIPS) (2019)
-11. Conneau, A., Lample, G., Ranzato, M., Denoyer, L., J egou, H.: Word translation
-without parallel data. In: International Conference on Learning Representations
-(ICLR) (2018)
-12. Deng, J., Dong, W., Socher, R., Li, L.J., Li, K., Fei-Fei, L.: ImageNet: A Large-
-Scale Hierarchical Image Database. In: The IEEE Conference on Computer Vision
-and Pattern Recognition (CVPR) (2009)
-13. Devlin, J., Chang, M.W., Lee, K., Toutanova, K.: Bert: Pre-training of deep bidi-
-rectional transformers for language understanding. In: arXiv:1810.04805v1 (2018)
-14. Elliott, D., Frank, S., Barrault, L., Bougares, F., Specia, L.: Findings of the second
-shared task on multimodal machine translation and multilingual image description.
-arXiv:1710.07177 (2017)
-15. Elliott, D., Frank, S., Sima'an, K., Specia, L.: Multi30k: Multilingual english-
-german image descriptions. arXiv:1605.00459 (2016)
-16. Gella, S., Sennrich, R., Keller, F., Lapata, M.: Image pivoting for learning multi-
-lingual multimodal representations. In: Empirical Methods in Natural Language
-Processing (EMNLP) (2017)16 A. Burns et al.
-17. Goyal, Y., Khot, T., Summers-Stay, D., Batra, D., Parikh, D.: Making the V in
-VQA matter: Elevating the role of image understanding in Visual Question An-
-swering. In: The IEEE Conference on Computer Vision and Pattern Recognition
-(CVPR) (2017)
-18. Gu, J., Hassan, H., Devlin, J., Li, V.O.: Universal neural machine translation for
-extremely low resource languages. In: Proceedings of the 2018 Conference of the
-North American Chapter of the Association for Computational Linguistics: Human
-Language Technologies (ACL-HLT) (2018)
-19. Gupta, T., Schwing, A., Hoiem, D.: Vico: Word embeddings from visual co-
-occurrences. In: The IEEE International Conference on Computer Vision (ICCV)
-(2019)
-20. He, K., Zhang, X., Ren, S., Sun, J.: Deep residual learning for image recognition.
-arXiv:1512.03385 (2015)
-21. K, K., Wang, Z., Mayhew, S., Roth, D.: Cross-lingual ability of multilingual bert:
-An empirical study. arXiv:1912.07840 (2019)
-22. Kazemzadeh, S., Ordonez, V., Matten, M., Berg, T.: Referitgame: Referring to ob-
-jects in photographs of natural scenes. In: Empirical Methods in Natural Language
-Processing (EMNLP) (2014)
-23. Kim, D., Saito, K., Saenko, K., Sclaro, S., Plummer, B.A.: Mule: Multimodal uni-
-versal language embedding. In: AAAI Conference on Articial Intelligence (2020)
-24. Klein, B., Lev, G., Sadeh, G., Wolf, L.: Fisher vectors derived from hybrid gaussian-
-laplacian mixture models for image annotation. In: The IEEE Conference on Com-
-puter Vision and Pattern Recognition (CVPR) (2015)
-25. Krishna, R., Zhu, Y., Groth, O., Johnson, J., Hata, K., Kravitz, J., Chen, S.,
-Kalantidis, Y., Li, L.J., Shamma, D.A., Bernstein, M., Fei-Fei, L.: Visual genome:
-Connecting language and vision using crowdsourced dense image annotations. In-
-ternational Journal of Computer Vision (IJCV) (2017)
-26. Li, L.H., Yatskar, M., Yin, D., Hsieh, C.J., Chang, K.W.: Visualbert: A simple and
-performant baseline for vision and language. arXiv:1908.03557 (2019)
-27. Li, X., Xu, C., Wang, X., Lan, W., Jia, Z., Yang, G., Xu, J.: Coco-cn for cross-
-lingual image tagging, captioning and retrieval. IEEE Transactions on Multimedia
-(2019)
-28. Lin, T.Y., Maire, M., Belongie, S., Hays, J., Perona, P., Ramanan, D., Doll ar,
-P., Zitnick, C.L.: Microsoft coco: Common objects in context. In: The European
-Conference on Computer Vision (ECCV) (2014)
-29. Lu, J., Batra, D., Parikh, D., Lee, S.: Vilbert: Pretraining task-agnostic visiolin-
-guistic representations for vision-and-language tasks. arXiv:1908.02265 (2019)
-30. Makiewicz, A., Ratajczak, W.: Principal components analysis (pca). Computers
-and Geosciences 19(3), 303 { 342 (1993)
-31. Miyazaki, T., Shimizu, N.: Cross-lingual image caption generation. In: Conference
-of the Association for Computational Linguistics (ACL) (2016)
-32. Nguyen, D.K., Okatani, T.: Multi-task learning of hierarchical vision-language rep-
-resentation. In: The IEEE Conference on Computer Vision and Pattern Recogni-
-tion (CVPR) (2019)
-33. Pires, T., Schlinger, E., Garrette, D.: How multilingual is multilingual bert?
-arXiv:1906.01502 (2019)
-34. Plummer, B.A., Wang, L., Cervantes, C.M., Caicedo, J.C., Hockenmaier, J., Lazeb-
-nik, S.: Flickr30k entities: Collecting region-to-phrase correspondences for richer
-image-to-sentence models. In: The IEEE International Conference on Computer
-Vision (ICCV) (2015)SMALR 17
-35. Ren, S., He, K., Girshick, R., Sun, J.: Faster r-cnn: Towards real-time object detec-
-tion with region proposal networks. In: Advances in Neural Information Processing
-Systems (NeurIPS) (2015)
-36. Smith, S.L., Turban, D.H.P., Hamblin, S., Hammerla, N.Y.: Oine bilingual word
-vectors, orthogonal transformations and the inverted softmax. arXiv:1702.03859
-(2017)
-37. Su, W., Zhu, X., Cao, Y., Li, B., Lu, L., Wei, F., Dai, J.: Vl-bert: Pre-training of
-generic visual-linguistic representations. arXiv:1908.08530 (2019)
-38. Tan, H., Bansal, M.: Lxmert: Learning cross-modality encoder representations from
-transformers. In: Proceedings of the 2019 Conference on Empirical Methods in
-Natural Language Processing (EMNLP) (2019)
-39. Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A.N., Kaiser,
-L.u., Polosukhin, I.: Attention is all you need. In: Guyon, I., Luxburg, U.V., Bengio,
-S., Wallach, H., Fergus, R., Vishwanathan, S., Garnett, R. (eds.) Advances in
-Neural Information Processing Systems (NeurIPS), pp. 5998{6008 (2017)
-40. Wang, L., Li, Y., Huang, J., Lazebnik, S.: Learning two-branch neural networks for
-image-text matching tasks. IEEE Transactions on Pattern Analysis and Machine
-Intelligence (TPAMI) 41(2), 394{407 (2018)
-41. Wehrmann, J., Souza, D.M., Lopes, M.A., Barros, R.C.: Language-agnostic visual-
-semantic embeddings. In: The IEEE International Conference on Computer Vision
-(ICCV) (2019)
-42. Wu, S., Dredze, M.: Beto, bentz, becas: The surprising cross-lingual eectiveness
-of bert. arXiv:1904.09077 (2019)
-43. Young, P., Lai, A., Hodosh, M., Hockenmaier, J.: From image descriptions to visual
-denotations: New similarity metrics for semantic inference over event descriptions.
-Transactions of the Association for Computational Linguistics (TACL) 2, 67{78
-(2014)
-44. Zellers, R., Bisk, Y., Farhadi, A., Choi, Y.: From recognition to cognition: Vi-
-sual commonsense reasoning. In: The IEEE Conference on Computer Vision and
-Pattern Recognition (CVPR) (2019)18 A. Burns et al.
-7 Supplementary Material
-7.1 Data Augmentation
-We augment the multilingual datasets MSCOCO [27,28,31] and Multi30K [6,14,15]
-with translations from languages with human-generated annotations to other
-languages using Google Translate.
-Tables 3 and 4 show what translations were performed for MSCOCO and
-Multi30K, respectively. The column X refers to all other languages that con-
-sist entirely of translations to create the total set of ten languages; i.e. for
-MSCOCO, X2German, French, Czech, Arabic, Afrikaans, Korean, Russian,
-and for Multi30K, X2Chinese, Japanese, Arabic, Afrikaans, Korean, Russian.
-We compare the eect of using human-generated vs. machine translated sen-
-tences at test time in Section 7.6.
-Table 3: Dataset Augmentation for MSCOCO. Arrows signify the use of machine
-translation, and X refers to all other languages in the total set of ten
-Annotation Type En Cn Ja X
-Human Generated MSCOCO [28] COCO-CN[27] YJ Captions [31] {
-TranslationsCn!En En!Cn En!Ja En!X
-Ja!En
-Table 4: Dataset Augmentation for Multi30K. Arrows signify the use of machine
-translation, and X refers to all other languages in the total set of ten
-Annotation Type En De Fr Cs X
-Human Generated Flickr30K [43] Multi30K [15] Multi30K [14] Multi30K [6] {
-TranslationsDe!En En!De En!Fr En!Cs En!X
-Fr!En
-Cs!EnSMALR 19
-7.2 Model Parameters
-Exploration Parameters One component of SMALR is the Hybrid Embed-
-ding Model (HEM), which makes use of both language-specic and language-
-agnostic representations. The Language-Agnostic (LA) baseline refers to only
-using the shared latent vocabulary, which consists of 40K tokens. We found ex-
-perimentally that using exploration parameters p= 0:2 andM= 20 improves
-downstream performance when using the latent vocabulary. These exploration
-parameters are used to force the model to randomly select from a set of similar
-tokens during training rather than always choosing the best matched token in
-the language-agnostic vocabulary (described in Section 3.1 of the main paper).
-Tables 5 and 6 demonstrate the dierence in mean Recall for image-sentence
-retrieval with and without our exploration parameters.
-Since we nd that using the exploration parameters when learning the map-
-ping to the latent vocabulary improves performance, we use them for both the
-Language-Agnostic and HEM results (and thus is included in the nal SMALR
-training paradigm).
-Table 5: MSCOCO Language-Agnostic (LA) Ablation
-Model En De1Fr1Cs1Cn JaAr1Af1Ko1Ru1HA A
-LA 64.2 58.8 58.3 52.1 59.0 63.2 61.9 65.3 58.6 58.5 58.3 60.0
-LA + Explore 65.561.359.954.059.464.763.966.560.360.360.261.6
-1uses translations from English for testing
-Table 6: Multi30K Language-Agnostic (LA) Ablation
-Model En De Fr CsCn1Ja1Ar1Af1Ko1Ru1HA A
-LA 73.9 73.0 71.7 72.9 72.0 70.8 72.8 72.0 69.7 72.0 72.2 72.1
-LA + Explore 75.074.374.173.472.372.174.474.771.672.773.173.5
-1uses translations from English for testing20 A. Burns et al.
-Loss Parameters Training SMALR did not require signicant hyperparameter
-tuning. We found the results were not sensitive to our choice of lambdas used in
-the SMALR loss, as dened in Eq. 4 of the main paper. Therefore, 1,3and
-4were kept the same as in prior work [16] for consistency. The parameter 2is
-associated with the MCLM masking loss we introduce, which is determined by
-grid search over powers of ten on the validation set. On Multi30K, the average
-mR for SMALR when varying 2has a performance range under one point, see
-Figure 4 below for exact values.
-Fig. 4: M30K ablation results for the 2parameter. As shown in Eq. 4 of the
-main paper, 2determines the contribution of the masking loss to the total
-SMALR training lossSMALR 21
-7.3 Qualitative Results
-We provide two examples for both MSCOCO and Multi30K which show the
-eect of the Cross-Lingual Consistency (CLC) module used with SMALR. We
-report results for the CLC-C variant, which makes use of a simple MLP classi-
-er to aggregate scores across language. For a given text query, if it is human
-generated, we translate it to all other languages and use the predictions from
-these translations as input to our CLC-C module.
-On the left hand side of Figure 5, the original text query is in English and
-its matching image is incorrectly retrieved, as shown by the red bounding box.
-However, when CLC-C is used, SMALR is able to correctly retrieve the matching
-image, as a subset of the translated sentences do correctly retrieve the ground
-truth image ( e.g. the German translation). On the right hand side of Figure 5,
-we also see the same benet for an original text query in German which is
-aided by English translations. These two examples demonstrate the benet of
-CLC-C for R@1, as CLC-C now correctly retrieves the ground truth image.
-Additionally, these samples show that every language does not have to make
-the correct prediction; the CLC-C module can learn to combine predictions to
-improve performance. As we can see in Figure 5, the images incorrectly retrieved
-for the original English and German queries \People are walking through a
-vegetable stall lled market" and \Der mann trgt eine orange wollmtze" contain
-very similar objects and colors to their respective ground truth images, but these
-errors are remedied when considering all languages.
-In Figure 6, there are two examples for MSCOCO, with original text queries
-in English and Chinese. Both examples have many translated queries which are
-able to correctly retrieve the ground truth image, such as French and Russian for
-English, and English, German, and French (among others) for Chinese. We see
-again that the original incorrectly retrieved image contains very similar visual
-semantics ( e.g. teddy bear for English, baseball eld for Chinese) to the ground
-truth, and the translated sentences help disambiguate subtle details.22 A. Burns et al.
-Fig. 5: Example of the benets of using the CLC module on Multi30KSMALR 23
-Fig. 6: Example of the benets of using the CLC module on MSCOCO24 A. Burns et al.
-7.4 Masked Cross-Language Modeling Example
-SMALR's Masked Cross-Language Model (MCLM) uses two language repre-
-sentations to compute its total loss, namely an average representation, and a
-sentence-level LSTM representation. The average masked sentence simply re-
-moves masked words and then averages each word embedding over the shorter
-version of the original sentence before predicting the masked token. The masked
-sentence-level representation retains the same number of words by replacing the
-masked words with a special [MASK] token; not only does this retain the total
-word count for a given query, it also maintains grammatical structure by using a
-LSTM. This representation is passed through a LSTM and fully connected layer
-before being used to predict the masked token. Figure 7 provides an example of
-this process; the word boxes represent word embeddings. See Section 3.2 of the
-main paper for a description of how these representations are used.
-Fig. 7: Variants of masking used in the MCLM moduleSMALR 25
-7.5 Extended Image-Sentence Retrieval Results
-We provide all recall values (Recall@K for K 2f1;5;10g) for all ten languages
-on image-sentence retrieval with MSCOCO and Multi30K. I-to-S signies the
-image to sentence retrieval direction, and S-to-I the sentence to image direc-
-tion. We shorten \Language-Agnostic" to \LA" and CLC-A, CLC-C to A and
-C, respectively, due to space constraints. Lastly, \Prior" refers to prior work,
-\Adapted" refers to prior work that has been adapted to our testing scenario
-using the author's publicly available code, and \Ours" refers to our SMALR
-model variants. The number preceding a model refers to the number of lan-
-guages it was trained on, e.g. (3-4) MULE signies MULE [23] trained on three
-languages (English, Chinese, Japanese) on MSCOCO, and four on Multi30K
-(English, German, French, Czech).
-Table 7: English bidirectional image-sentence retrieval results using human-
-generated sentences
-ModelMSCOCO Multi30K
-I-to-S S-to-ImRI-to-S S-to-ImRr@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10
-(a)Prior
-Trans. to En 58.6 86.5 94.1 45.5 79.6 89.5 75.6 58.3 82.9 90.4 41.7 72.0 81.2 71.1
-EmbN 61.8 87.6 94.1 47.5 79.8 89.8 76.8 57.9 84.5 90.9 44.3 72.7 84.7 72.0
-PAR. EmbN 63.1 89.1 94.1 49.2 82.5 91.5 78.3 52.4 80.1 87.7 41.6 71.5 80.7 69.0
-(3-4) MULE 63.9 90.2 95.8 50.9 83.5 92.4 79.5 54.2 82.0 89.9 41.9 72.5 81.1 70.3
-(b)Adapted
-(1) S-LIWE 66.8 91.2 96.6 52.4 85.1 93.5 80.965.5 88.995.1 46.9 77.2 84.576.3
-(2) S-LIWE 62.3 87.3 94.6 48.3 80.7 91.0 77.4 64.5 88.1 94.3 46.4 75.8 84.5 75.6
-(10) S-LIWE 61.8 88.2 94.8 47.9 80.3 90.5 77.3 63.8 88.0 93.4 46.4 75.4 84.3 75.2
-(10) L-LIWE 63.8 90.2 95.6 50.1 82.9 92.2 79.1 63.989.0 94.2 46.9 76.8 84.8 75.9
-(10) MULE 63.8 88.9 95.5 50.5 83.2 92.0 79.0 55.2 82.1 90.7 42.2 72.2 81.8 70.7
-(c)Ours
-LA 56.4 84.9 92.3 46.0 80.5 90.2 75.0 48.1 77.2 86.9 36.5 67.1 77.2 65.5
-HEM 61.6 89.0 95.4 50.5 83.3 92.4 78.7 51.3 79.9 88.4 41.8 72.1 81.5 69.2
-SMALR 62.9 89.2 95.8 51.1 84.0 92.5 79.3 52.0 81.1 88.4 41.8 72.4 82.1 69.6
-SMALR-A 66.6 91.1 97.3 52.8 85.7 93.4 81.2 59.4 83.7 90.2 47.5 77.5 86.1 74.1
-SMALR-C 66.591.3 97.5 53.686.2 94.0 81.5 60.2 83.8 91.047.977.9 86.3 74.526 A. Burns et al.
-Table 8: German bidirectional image-sentence retrieval results using sentences
-translated from English into German for testing on MSCOCO and human-
-generated sentences on Multi30K
-ModelMSCOCO Multi30K
-I-to-S S-to-ImRI-to-S S-to-ImRr@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10
-(a)Prior
-Trans. To En { { { { { { {34.1 60.4 71.1 19.6 47.4 58.5 48.5
-EmbN { { { { { { {46.6 73.9 82.2 31.3 59.1 69.0 60.3
-PAR. EmbN { { { { { { {46.1 76.3 83.2 34.4 62.5 73.0 62.6
-(3-4) MULE { { { { { { {49.7 77.7 85.7 34.6 63.4 73.5 64.1
-(b)Adapted
-(1) S-LIWE { { { { { { {61.186.6 92.7 42.0 69.9 80.072.1
-(2) S-LIWE { { { { { { {51.2 80.2 88.4 35.7 65.7 75.2 66.1
-(10) S-LIWE 49.8 79.1 87.3 36.6 69.4 82.4 67.4 50.5 79.0 88.0 34.9 64.3 74.3 65.2
-(10) L-LIWE 52.1 84.9 92.6 39.3 73.4 85.0 71.2 51.1 80.5 89.8 35.9 66.6 76.1 66.7
-(10) MULE 59.1 88.7 94.9 48.5 81.3 90.6 77.2 45.8 75.8 85.2 35.1 64.6 75.3 63.6
-(c)Ours
-LA 54.4 86.2 93.1 44.5 78.6 88.7 74.3 44.0 75.4 85.1 32.2 59.7 71.0 61.3
-HEM 59.2 87.2 95.1 49.1 81.8 91.4 77.3 49.2 75.4 83.2 34.5 62.0 72.4 62.8
-SMALR 61.289.2 96.2 49.682.3 91.8 78.4 49.9 75.8 85.0 36.9 65.4 75.4 64.7
-SMALR-A { { { { { { {53.0 77.6 85.8 41.9 72.9 82.3 68.9
-SMALR-C { { { { { { {52.9 78.8 87.042.674.2 83.1 69.8SMALR 27
-Table 9: French bidirectional image-sentence retrieval results using sentences
-translated from English into French for testing on MSCOCO and human-
-generated sentences on Multi30K
-ModelMSCOCO Multi30K
-I-to-S S-to-ImRI-to-S S-to-ImRr@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10
-(a)Prior
-Trans. to En { { { { { { {22.5 52.5 63.0 25.1 53.1 63.9 46.7
-EmbN { { { { { { {31.0 60.4 71.0 35.2 60.3 70.8 54.8
-PAR. EmbN { { { { { { {37.6 66.0 77.4 37.8 66.4 78.2 60.6
-(3-4) MULE { { { { { { {38.0 68.4 80.0 38.2 68.9 80.3 62.3
-(b)Adapted
-(10) S-LIWE 50.8 79.3 90.4 36.5 70.7 83.2 68.5 39.0 39.0 51.6 37.3 66.7 77.3 51.8
-(10) L-LIWE 51.8 81.3 92.2 39.0 73.1 84.7 70.3 40.6 40.7 54.7 37.8 69.3 78.1 53.5
-(10) MULE 60.3 86.9 94.3 47.8 81.3 90.4 76.8 39.2 70.9 80.7 38.8 70.5 80.2 63.4
-(c)Ours
-LA 54.8 83.6 92.6 44.8 79.4 89.7 74.1 35.1 65.8 76.0 39.5 65.6 77.2 59.9
-HEM 57.6 87.0 94.0 48.0 80.791.1 76.4 38.1 70.5 80.6 40.2 69.5 80.6 63.3
-SMALR 59.689.7 95.9 48.781.9 91.077.8 40.6 70.7 81.8 41.1 71.8 80.7 64.5
-SMALR-A { { { { { { {40.373.4 80.9 42.2 72.8 81.8 65.2
-SMALR-C { { { { { { {41.173.4 82.5 42.673.0 82.9 65.9
-Table 10: Czech bidirectional image-sentence retrieval results using sentences
-translated from English into Czech for testing on MSCOCO and human-
-generated sentences on Multi30K
-ModelMSCOCO Multi30K
-I-to-S S-to-ImRI-to-S S-to-ImRr@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10
-(a)Prior
-Trans. to En { { { { { { {23.0 50.9 64.7 25.1 53.4 64.2 46.9
-EmbN { { { { { { {26.2 51.3 62.5 26.8 50.3 60.8 46.3
-PAR. EmbN { { { { { { {31.4 58.2 70.1 33.1 60.4 71.6 54.1
-(3-4) MULE { { { { { { {34.3 63.2 74.2 35.3 63.6 75.5 57.7
-(b)Adapted
-(10) S-LIWE 46.8 79.8 90.3 34.6 68.2 82.0 66.9 36.5 36.5 50.0 37.6 64.3 75.2 50.0
-(10) L-LIWE 50.7 82.3 92.1 37.6 72.8 84.8 70.1 37.6 37.6 52.9 38.1 66.2 75.2 51.3
-(10) MULE 61.6 88.7 94.8 48.8 81.5 91.1 77.8 37.0 66.3 76.4 37.5 64.6 74.8 59.4
-(c)Ours
-LA 55.3 84.6 92.4 43.5 76.9 87.8 73.4 31.0 59.6 71.1 32.5 58.5 71.5 54.0
-HEM 59.9 88.4 95.449.282.5 91.7 77.9 35.0 66.9 77.4 36.1 67.4 77.2 60.0
-SMALR 63.289.6 95.7 49.2 82.4 91.678.6 36.5 69.0 78.0 36.7 68.0 78.2 61.1
-SMALR-A { { { { { { {41.170.7 80.4 39.971.8 83.0 64.5
-SMALR-C { { { { { { {41.970.7 81.1 40.5 71.7 82.864.828 A. Burns et al.
-Table 11: Chinese bidirectional image-sentence retrieval results using sentences
-translated from English into Chinese for testing on Multi30K and human-
-generated sentences on MSCOCO
-ModelMSCOCO Multi30K
-I-to-S S-to-ImRI-to-S S-to-ImRr@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10
-(a)Prior
-Trans. to En 45.9 79.8 89.2 47.8 81.1 89.4 72.2 { { { { { { {
-EmbN 49.6 81.6 90.0 47.8 82.1 90.0 73.5 { { { { { { {
-PAR. EmbN 47.9 81.4 91.1 47.5 81.6 91.2 73.5 { { { { { { {
-(3-4) MULE 51.1 82.6 91.6 49.1 82.4 91.9 74.8 { { { { { { {
-(b)Adapted
-(10) S-LIWE 45.1 76.4 88.1 32.7 66.0 79.6 64.5 39.3 68.1 79.2 24.2 51.0 62.5 54.1
-(10) L-LIWE 51.4 82.6 91.3 38.1 72.2 84.6 70.0 42.6 72.4 82.4 26.0 53.6 64.7 56.9
-(10) MULE 50.8 84.0 92.5 50.3 83.6 92.4 75.647.477.0 85.8 35.4 64.9 74.464.2
-(c)Ours
-LA 46.0 79.6 90.7 45.9 80.6 91.1 72.3 42.2 72.0 81.6 30.6 59.8 70.0 59.4
-HEM 53.2 85.0 93.2 51.3 84.6 93.0 76.7 44.1 74.7 84.4 33.8 63.3 74.4 62.4
-SMALR 51.2 86.5 93.8 50.6 84.7 93.3 76.7 45.877.0 85.035.865.1 75.5 64.0
-SMALR-A 57.5 87.3 94.9 54.8 87.7 95.2 79.6 { { { { { { {
-SMALR-C 58.087.8 95.4 55.388.2 95.7 80.1 { { { { { { {SMALR 29
-Table 12: Japanese bidirectional image-sentence retrieval results using sentences
-translated from English into Japanese for testing on Multi30K and human-
-generated sentences on MSCOCO
-ModelMSCOCO Multi30K
-I-to-S S-to-ImRI-to-S S-to-ImRr@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10
-(a)Prior
-Trans. to En 44.8 74.3 85.4 36.9 71.0 84.7 66.1 { { { { { { {
-EmbN 56.0 83.7 90.7 45.5 77.2 87.3 73.2 { { { { { { {
-PAR. EmbN 60.1 86.0 92.8 47.7 79.6 89.7 76.0 { { { { { { {
-(3-4) MULE 59.686.5 92.8 47.8 80.8 90.1 76.3 { { { { { { {
-(b)Adapted
-(1) S-LIWE 57.2 85.0 93.2 42.2 76.4 87.6 73.6 { { { { { { {
-(2) S-LIWE 45.3 78.2 89.5 36.4 68.9 81.2 66.6 { { { { { { {
-(10) S-LIWE 45.9 77.9 88.2 34.1 67.5 81.2 65.8 41.8 72.4 82.1 25.3 52.4 63.4 56.2
-(10) L-LIWE 51.5 81.4 90.2 39.1 71.4 84.3 69.6 40.5 71.0 82.1 26.2 53.5 64.7 56.3
-(10) MULE 59.4 85.2 93.0 47.4 80.1 90.2 75.949.980.2 87.7 38.169.3 78.667.3
-(c)Ours
-LA 51.4 83.3 90.3 42.4 76.8 88.1 72.1 48.4 77.2 85.7 35.5 65.1 76.5 64.7
-HEM 56.8 86.3 93.8 47.7 81.791.7 76.3 48.9 78.4 86.0 38.4 68.0 78.3 66.3
-SMALR 60.4 86.494.3 48.5 82.2 91.2 77.2 46.8 79.1 87.638.8 69.178.8 66.7
-SMALR-A 60.0 84.5 92.9 45.9 78.3 88.6 75.0 { { { { { { {
-SMALR-C 61.9 86.4 94.049.381.9 91.377.5 { { { { { { {
-Table 13: Arabic bidirectional image-sentence retrieval results using sentences
-translated from English into Arabic for testing
-ModelMSCOCO Multi30K
-I-to-S S-to-ImRI-to-S S-to-ImRr@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10
-(a)Adapted
-(10) S-LIWE 43.4 75.6 86.3 33.1 65.7 78.6 63.8 47.5 76.9 84.7 33.3 61.9 72.0 62.7
-(10) L-LIWE 49.1 81.4 90.3 34.4 68.4 81.0 67.548.7 78.487.9 34.3 65.3 75.5 65.0
-(10) MULE 60.3 88.3 94.6 47.9 81.2 90.7 77.2 48.6 78.2 87.4 36.7 66.8 76.9 65.8
-(b)Ours
-LA 56.1 85.5 93.6 44.0 78.3 88.7 74.4 44.7 78.1 85.6 34.5 65.2 75.3 63.9
-HEM 58.4 87.9 94.9 47.6 81.5 91.4 77.0 45.9 76.8 85.6 36.3 66.2 76.2 64.5
-SMALR 60.189.0 95.7 48.681.9 91.9 77.9 46.278.6 87.438.367.7 77.9 66.030 A. Burns et al.
-Table 14: Afrikaans bidirectional image-sentence retrieval results using sentences
-translated from English into Afrikaans for testing
-ModelMSCOCO Multi30K
-I-to-S S-to-ImRI-to-S S-to-ImRr@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10
-(a)Adapted
-(10) S-LIWE 46.7 79.1 88.8 35.0 67.4 80.2 66.2 49.8 77.5 85.1 32.8 60.6 70.7 62.8
-(10) L-LIWE 49.9 82.2 91.8 36.9 70.6 82.4 68.9 49.5 77.4 86.3 34.0 62.3 72.6 63.7
-(10) MULE 62.4 88.1 94.8 48.7 81.5 91.0 77.8 51.3 80.287.7 39.0 67.7 77.7 67.3
-(b)Ours
-LA 55.2 85.1 92.7 45.7 79.9 89.5 74.751.5 78.9 86.5 37.8 67.2 77.2 66.5
-HEM 59.8 86.4 93.9 47.5 81.2 91.2 76.7 47.6 79.3 87.4 38.769.2 78.9 66.8
-SMALR 62.588.7 95.9 48.882.2 91.4 78.2 48.779.7 87.540.5 68.879.1 67.4
-Table 15: Korean bidirectional image-sentence retrieval results using sentences
-translated from English into Korean for testing
-ModelMSCOCO Multi30K
-I-to-S S-to-ImRI-to-S S-to-ImRr@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10
-(a)Adapted
-(10) S-LIWE 42.4 76.4 86.9 31.9 63.6 77.4 63.1 38.7 69.1 80.2 24.3 51.8 62.7 54.5
-(10) L-LIWE 48.1 79.8 89.5 33.4 66.3 79.9 66.2 41.2 73.5 83.2 26.3 53.4 65.0 57.1
-(10) MULE 56.5 85.6 93.5 43.9 78.0 88.5 74.347.1 76.1 85.3 35.0 63.7 74.6 63.6
-(b)Ours
-LA 51.9 85.0 92.2 40.2 73.8 86.4 71.6 43.3 73.4 83.0 31.3 59.4 71.1 60.3
-HEM 57.0 85.8 94.646.279.2 90.0 75.5 44.4 76.6 85.4 32.9 62.0 72.2 62.3
-SMALR 55.786.9 94.8 45.2 78.8 89.4 75.1 45.778.2 85.5 35.264.8 75.5 64.2
-Table 16: Russian bidirectional image-sentence retrieval results using sentences
-translated from English into Russian for testing
-ModelMSCOCO Multi30K
-I-to-S S-to-ImRI-to-S S-to-ImRr@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10 r@1 r@5 r@10
-(a)Adapted
-(10) S-LIWE 44.7 76.1 86.5 31.4 64.5 78.2 63.6 47.7 77.4 84.6 33.6 62.9 72.6 63.1
-(10) L-LIWE 50.7 83.6 91.5 36.7 71.7 83.0 69.649.779.5 86.9 35.2 65.2 76.0 65.4
-(10) MULE 60.889.0 94.9 48.0 80.4 90.4 77.3 48.3 78.6 86.2 37.1 65.8 76.2 65.4
-(b)Ours
-LA 53.7 85.0 92.1 42.4 75.8 87.4 72.7 42.2 72.7 82.8 31.6 60.7 71.7 60.3
-HEM 58.3 87.5 94.448.581.8 91.7 77.0 45.6 75.0 83.6 35.3 63.2 73.1 62.6
-SMALR 62.7 88.895.0 48.2 81.7 91.578.0 48.4 77.3 86.038.067.2 77.5 65.7SMALR 31
-7.6 Testing with Machine Translations
-In this section we investigate the eect testing with machine translations rather
-than human-generated sentences has when comparing methods. For all meth-
-ods we use models trained on all 10 languages, and test on human-generated
-and translated sentences for Chinese and Japanese on MSCOCO and German,
-French, and Czech on Multi30k.
-As seen below, there are only minor dierences in the performance of each
-language we tested. Notably, the performance rankings with each dataset are
-consistent regardless of whether the method is evaluated on human generated
-test sentences or test sentences translated from English.
-Table 17: Comparison of using Human Generated Sentences vs. Translations for
-testing purposes.
-ModelMSCOCO Multi30k
-mRAvg RankmRAvg RankCn Ja De Fr Cs
-(a)Human generated test sentences
-(10) S-LIWE [41] 64.5 65.8 65.2 665.2 51.8 50.0 55.7 6
-(10) L-LIWE 70.0 69.6 69.8 566.7 53.5 51.3 57.2 5
-(10) MULE [23] 75.6 75.9 75.8 363.6 63.4 59.4 62.1 2
-Language-Agnostic 72.3 72.1 72.2 461.3 59.9 54.0 58.4 4
-HEM 76.7 76.3 76.5 262.8 63.3 60.0 62.0 3
-SMALR 76.777.276.9 164.764.561.163.4 1
-(b)Test sentences translated from En
-(10) S-LIWE [41] 64.7 65.8 65.2 664.3 49.9 52.1 55.4 6
-(10) L-LIWE 70.0 69.6 69.8 565.8 51.8 54.8 57.5 5
-(10) MULE [23] 73.2 75.0 74.1 364.4 64.0 64.8 64.4 2
-Language-Agnostic 69.7 71.4 70.6 461.7 61.1 60.5 61.1 4
-HEM 73.5 75.3 74.4 263.8 63.5 64.3 63.9 3
-SMALR 74.475.975.2 165.165.165.565.2 1

@@ -32,6 +32,7 @@ embeddings:
     api_key: ${GRAPHRAG_API_KEY}
     type: openai_embedding # or azure_openai_embedding
     model: text-embedding-3-small
+    disallowed_special: ()
     # api_base: https://<instance>.openai.azure.com
     # api_version: 2024-02-15-preview
     # organization: <organization_id>
@@ -125,7 +126,7 @@ umap:
   enabled: false # if true, will generate UMAP embeddings for nodes
 
 snapshots:
-  graphml: false
+  graphml: true
   raw_entities: false
   top_level_nodes: false
 

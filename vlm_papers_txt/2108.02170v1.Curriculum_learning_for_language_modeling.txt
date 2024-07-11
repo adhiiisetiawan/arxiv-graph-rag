@@ -1,7 +1,7 @@
 CURRICULUM LEARNING FOR LANGUAGE MODELING
-Daniel Campos
+Daniel Campos
 University of Illinois Urbana-Champaign
-dcampos3@illinois.edu
+dcampos3illinois.edu
 ABSTRACT
 Language Models like ELMo and BERT have provided robust representations of natural lan-
 guage, which serve as the language understanding component for a diverse range of downstream
@@ -11,305 +11,305 @@ model performance. While language models have proven transformational for the na
 processing community, these models have proven expensive, energy-intensive, and challenging to
 train. In this work, we explore the effect of curriculum learning on language model pretraining
 using various linguistically motivated curricula and evaluate transfer performance on the GLUE
-Benchmark. Despite a broad variety of training methodologies and experiments we do not ﬁnd
+Benchmark. Despite a broad variety of training methodologies and experiments we do not find
 compelling evidence that curriculum learning methods improve language model training.
-Keywords Curriculum Learning Language Modeling
+Keywords Curriculum Learning Language Modeling
 1 Introduction
-Seeking to represent natural language, researchers have found language models (LM) with Sesame Street-inspired
-names [ 1] [2] [3] to be incredibly effective methods of producing language representations (LR). These LM’s have
+Seeking to represent natural language, researchers have found language models LM with Sesame Street-inspired
+names  1 2 3 to be incredibly effective methods of producing language representations LR. These LMs have
 leverage transfer learning by training on a large text corpus to learn a good representation of language which can then be
 used in a down steam task like Question Answering or Entity Resolution. While these LMs have shown to be excellent
 methods to enable language understanding, the ability to train these models is becoming increasingly computationally
-expensive [ 4]. Since model performance is closely tied to the size of training data, model size, and compute used to
-train [ 5] the bulk of existing research has focused on scaling these aspects without much focus on increasing efﬁciency
-of training. Seeking to explore what methods could be used to make LM training more efﬁcient we study the effect of
+expensive  4. Since model performance is closely tied to the size of training data, model size, and compute used to
+train  5 the bulk of existing research has focused on scaling these aspects without much focus on increasing efficiency
+of training. Seeking to explore what methods could be used to make LM training more efficient we study the effect of
 curriculum learning by training ELMo with a wide variety of curricula.
-Curriculum learning (CL) is a training methodology which applies structure to a models training data. CL has been
+Curriculum learning CL is a training methodology which applies structure to a models training data. CL has been
 studied broadly in natural language processing and has been very successful in domains like Neural Machine Translation
-(NMT) where CL based models are able to train faster and produce better results [ 6] [7] [8] than unstructured, stochastic
-sampling. Focusing on LMs, Xu et al. [ 9] showed that CL can be used in LM ﬁnetuning as a way to improve task
-performance. Despite an abundance of work exploring CL and LMs to the best of our knowledge we are the ﬁrst to
+NMT where CL based models are able to train faster and produce better results  6 7 8 than unstructured, stochastic
+sampling. Focusing on LMs, Xu et al.  9 showed that CL can be used in LM finetuning as a way to improve task
+performance. Despite an abundance of work exploring CL and LMs to the best of our knowledge we are the first to
 examine the effect of curriculum learning in LM pre-training and transfer performance.
-To evaluate the effect of CL on LMs we train ELMo with a variety of curricula on the wikitext-2 and wikitext-103 [ 10]
-without modiﬁcation of training time or model hyperparameters. We evaluate model performance on the pre-training
-task and on the GLUE Benchmark [ 11] building on the work of Competence Based Curriculum Learning [ 12] by
-modifying training sampler within the LM to produce a dataset with gradually increasing difﬁculty2. The contributions
+To evaluate the effect of CL on LMs we train ELMo with a variety of curricula on the wikitext-2 and wikitext-103  10
+without modification of training time or model hyperparameters. We evaluate model performance on the pre-training
+task and on the GLUE Benchmark  11 building on the work of Competence Based Curriculum Learning  12 by
+modifying training sampler within the LM to produce a dataset with gradually increasing difficulty2. The contributions
 of our work are:
-•Exploration of the effects of curriculum learning for language modeling ﬁnding no clear improvement to
+Exploration of the effects of curriculum learning for language modeling finding no clear improvement to
 models that use curriculum methods for training.
-•Experiments suggesting random curriculum in which the structure of the training regime is random can be just
+Experiments suggesting random curriculum in which the structure of the training regime is random can be just
 as effective as linguistically motivated methods.
-Work done pursing Masters Degree at University of Washington
-2Code and results available at https://github.com/spacemanidol/CurriculumLearningForLanguageModelsarXiv:2108.02170v1  [cs.CL]  4 Aug 2021Curriculum Learning for Language Modeling
+Work done pursing Masters Degree at University of Washington
+2Code and results available at https:github.comspacemanidolCurriculumLearningForLanguageModelsarXiv:2108.02170v1  cs.CL  4 Aug 2021Curriculum Learning for Language Modeling
 2 Related Work
 2.1 Curriculum Learning
-CL subset of training regimes which introduce structure to improve training efﬁciency, model performance, or model
+CL subset of training regimes which introduce structure to improve training efficiency, model performance, or model
 model robustness by optimizing what kind of information a model has access at each training step. Experiments with
-RNNs [ 13] suggested that learning of complex grammatical structure improves when the initial examples the models
-learn with are more easier. Experiments in modifying language modeling training data ﬁnd a lower loss can be achieved
-by training on incrementally more difﬁcult data [ 14]. Recently, competence based curriculum [ 6] has been used to
+RNNs  13 suggested that learning of complex grammatical structure improves when the initial examples the models
+learn with are more easier. Experiments in modifying language modeling training data find a lower loss can be achieved
+by training on incrementally more difficult data  14. Recently, competence based curriculum  6 has been used to
 improve machine translation progressively modifying the training corpus until it matches the original distribution. It
-has been used to reduce training time by up to 70% and improve BLEU performance by 2.2 points on the WMT dataset.
-For further readings about curriculum learning, applications and current bottlenecks we recommend Soviany et al.’s
-survey [15]
+has been used to reduce training time by up to 70 and improve BLEU performance by 2.2 points on the WMT dataset.
+For further readings about curriculum learning, applications and current bottlenecks we recommend Soviany et al.s
+survey 15
 2.2 Language Modeling
 Language modeling is a way to assign a probability distribution over some textual representation. In other words, if the
 task is to model n-grams, the probability of a current input is the probability of a token wigiven the previous itokens.
-Language Models like ELMo [ 1] and BERT [ 2] leverage large text corpora to learn language representations that can
-be used for downstream tasks like text classiﬁcation or question answering. While LMs lead to large improvement in
+Language Models like ELMo  1 and BERT  2 leverage large text corpora to learn language representations that can
+be used for downstream tasks like text classification or question answering. While LMs lead to large improvement in
 performance for downstream tasks they are both expensive and complex to train. A single training run of a model like
-GPT-2 can cost upward of $40,000, the architecture search and hyperparameter tuning can be upwards of $3,000,000,
+GPT-2 can cost upward of 40,000, the architecture search and hyperparameter tuning can be upwards of 3,000,000,
 and the C 02released by training one of these models can be similar to the C 02released in the entire life-cycle of a car
-[16].
+16.
 3 Method
 Language modeling is a way to assign a probability distribution over some textual representation. This probability
 distribution is commonly modeled as the probability of a current token wigiven the previous itokens as formally
 represented in equation 2. Using language modeling as a pre-training method, LMs learn representations which can be
 used in downstream tasks. Since language has structure, we believe that structuring the pre-training methodology can
-lead to improved model performance. To introduce structure into LM training we leverage Platanios et al.’s competence
-based curriculum (CBC)[ 6] as shown in Algorithm 1. CBC uses a notion of model competence and sample difﬁculty
+lead to improved model performance. To introduce structure into LM training we leverage Platanios et al.s competence
+based curriculum CBC 6 as shown in Algorithm 1. CBC uses a notion of model competence and sample difficulty
 to control what a model learns. First, the corpus, X, a collection of samples S, where each sample siis a sequence
-of wordssi=wi
+of wordssiwi
 o;wi
 1;:::;wi
-nis sorted by difﬁculty using a which Using a heuristic like sentence length or unigram
-rarity is assigned a difﬁculty si= [0;1]. Given a processed corpus, a model is assigned a initial competence 0and a
-competence increment lambda increment . A model’s competence score is a representation of how far along in a training
+nis sorted by difficulty using a which Using a heuristic like sentence length or unigram
+rarity is assigned a difficulty si 0;1. Given a processed corpus, a model is assigned a initial competence 0and a
+competence increment lambda increment . A models competence score is a representation of how far along in a training
 regime the model is. At each training step, a model samples from data that is lower than its current competence, updates
-its weights, and increases its competence. The model is only able to train on samples that have a difﬁculty where
-si<=t.
-Using CBC we explore 8 proxies for sample difﬁculty: no curriculum, random, sample length, unigram sample proba-
+its weights, and increases its competence. The model is only able to train on samples that have a difficulty where
+sit.
+Using CBC we explore 8 proxies for sample difficulty: no curriculum, random, sample length, unigram sample proba-
 Algorithm 1: CBC Training Regime
 Result: Model Trained with Competence Based Curriculum
-Input: X,0,increment ;
-Compute difﬁculty, siforsi2X;
-Compute Cumulative density of si;
-t=0;
-fortraining step t = 1,...,n do
-Sample batch bfrom X such that si< t;
+Input: X,0,increment ;
+Compute difficulty, siforsi2X;
+Compute Cumulative density of si;
+t0;
+fortraining step t  1,...,n do
+Sample batch bfrom X such that si t;
 Train on batch b;
-t+1=t+increment ;
+t1tincrement ;
 end
-bility, bigram sample probability, trigram sample probability, part of speech diversity (POS), and sample dependency
-parse complexity (DEP). For each methodology, for each siinX, we compute a difﬁculty value for each sample si
-and then sort the dataset by this difﬁculty score. Using the sorted dataset we compute the cumulative density function
-(CDF) giving each sample of the difﬁculty score si2[0;1]. No curriculum sets 0= 1which means training samples
+bility, bigram sample probability, trigram sample probability, part of speech diversity POS, and sample dependency
+parse complexity DEP. For each methodology, for each siinX, we compute a difficulty value for each sample si
+and then sort the dataset by this difficulty score. Using the sorted dataset we compute the cumulative density function
+CDF giving each sample of the difficulty score si20;1. No curriculum sets 0 1which means training samples
 2Curriculum Learning for Language Modeling
-stochastically and serves as a baseline. A random curriculum is generated by assigning values for siat random and
-establishes the effect of any arbitrary structure. The remaining six heuristics are based on common NLP difﬁculty
+stochastically and serves as a baseline. A random curriculum is generated by assigning values for siat random and
+establishes the effect of any arbitrary structure. The remaining six heuristics are based on common NLP difficulty
 metrics and linguistically motivated heuristics.
 3.0.1 Sample Length
 Sample Length builds on the idea that is a lot harder to model longer sentences, as longer sentences require better
-tracking of dependencies. It is calculated by creating a CDF on sentence-length- si=length (si).
-3.0.2 Sentence Entropy: N-gram difﬁculty
-Sentence Entropy builds uses the notion that can be difﬁcult to model is words with a variety of frequency in the
-corpora. Models, if assumed to behave like humans, would ﬁnd it difﬁcult to understand the meaning of a word if
+tracking of dependencies. It is calculated by creating a CDF on sentence-length- silength si.
+3.0.2 Sentence Entropy: N-gram difficulty
+Sentence Entropy builds uses the notion that can be difficult to model is words with a variety of frequency in the
+corpora. Models, if assumed to behave like humans, would find it difficult to understand the meaning of a word if
 they do not see it in a corpus nor have a diversity of usages to infer meaning. Since the statistical strength of training
 samples with rare words is low and the early model learned word embeddings are likely to have high variance it is likely
-that exposing a model early to rare words can result in badly estimated representations. To quantify this difﬁculty we
+that exposing a model early to rare words can result in badly estimated representations. To quantify this difficulty we
 propose producing a sentence entropy for each sentence with respect to its unigram, bigram, and trigram probabilities.
 These are calculated using standard sample entropy calculations as shown below Sample entropy for each N-gram can
 be thought of the probability of the sample occurring given an approximate naive language modeling assuming words
 are sampled independently. Samples are scored by calculating the product of n-gram log likelihood given the sample.
 Note, we are not calculating the conditional probability of each word given the preceding N words but the probability
-of the N-gram given the text corpus. Calculation of siis shown in equation 1 where uc,bc, andtcare the counts of
-unique unigrams, bigrams, and trigrams in the corpus, Cis the corpus, c(y)is the count of yin a sample, x2Cis a
-sample in the corpus and wi2xis a word in a line, and l(x)is the length of xinn-grams.
-p(wn) =P
-x2Cc(wn)
+of the N-gram given the text corpus. Calculation of siis shown in equation 1 where uc,bc, andtcare the counts of
+unique unigrams, bigrams, and trigrams in the corpus, Cis the corpus, cyis the count of yin a sample, x2Cis a
+sample in the corpus and wi2xis a word in a line, and lxis the length of xinn-grams.
+pwn P
+x2Ccwn
 us
-p(wn;wm) =P
-x2Cc(wn;wm)
+pwn;wm P
+x2Ccwn;wm
 bs
-p(wn;wm;wj) =P
-x2Cc(wn;wm;wj)
+pwn;wm;wj P
+x2Ccwn;wm;wj
 ts
-unigram-(si) =l(si)Y
-n=0log(p(wn))
-bigram-(si) =l(si) 1Y
-n=0log(p(wn 1;wn))
-trigram-si=l(si) 2Y
-n=0log(p(wn;wn+1;wn+2))(1)
+unigram-si lsiY
+n0logpwn
+bigram-si lsi1Y
+n0logpwn1;wn
+trigram-silsi2Y
+n0logpwn;wn1;wn21
 3.0.3 Dependency Tree
 Sentences are often modeled as dependency trees to model the interaction between words and groups of words in a text
-sample. While not infallible, sentences that have a deeper tree usually more complex and as a result more difﬁcult. We
-leverage the language processing framework SPACY .IO’s to generate parse trees for each sample and measure the depth
-of each tree. This information is then used to calculate difﬁcult as dep-si=depth (si). Since there are fewer unique
-values for tree depth this method can be inferred to have a high commonality with random difﬁculty.
+sample. While not infallible, sentences that have a deeper tree usually more complex and as a result more difficult. We
+leverage the language processing framework SPACY .IOs to generate parse trees for each sample and measure the depth
+of each tree. This information is then used to calculate difficult as dep-sidepth si. Since there are fewer unique
+values for tree depth this method can be inferred to have a high commonality with random difficulty.
 3.1 Part of Speech Diversity
 Another core part of language complexity can be derived by the diversity of parts-of-speech in a sentence. We believe
-that more difﬁcult sentences feature a higher diversity of parts-of-speech (POS) and use SPACY .IO’s part of speech
+that more difficult sentences feature a higher diversity of parts-of-speech POS and use SPACY .IOs part of speech
 3Curriculum Learning for Language Modeling
-tagger to produce a set for in each sample and calculate difﬁculty with pos- si=len(set(pos(si)))
-P(w1;:::;w m) =mY
-i=1P(wijw1;:::;w i 1)
-mY
-i=1P(wijwi (n 1);:::;w i 1)(2)
+tagger to produce a set for in each sample and calculate difficulty with pos- silensetpossi
+Pw1;:::;w m mY
+i1Pwijw1;:::;w i1
+mY
+i1Pwijwin1;:::;w i12
 4 Experiments
 To evaluate the effect of curriculum learning on language modeling we train ELMo models varying the training
-corpus and using our aforementioned difﬁculty proxies to generate various language models. Training leverages
-well-established language modeling benchmarks of wikitext-2, and wikitext-103 [ 10] with details can be found in table
-1 . These datasets collect veriﬁed good and featured articles from English Wikipedia and feature 2 million and 103
+corpus and using our aforementioned difficulty proxies to generate various language models. Training leverages
+well-established language modeling benchmarks of wikitext-2, and wikitext-103  10 with details can be found in table
+1 . These datasets collect verified good and featured articles from English Wikipedia and feature 2 million and 103
 million tokens and were selected for the variations in size and speed of training. After training, each language model
-performance is then evaluated based on performance on the training corpus (measured in perplexity) and transfer ability
-on The General Language Understanding Evaluation Benchmark (GLUE) [ 11]. GLUE is a set of resources focused
+performance is then evaluated based on performance on the training corpus measured in perplexity and transfer ability
+on The General Language Understanding Evaluation Benchmark GLUE  11. GLUE is a set of resources focused
 on the evaluation of natural language understanding systems. This benchmark pools eleven sentence-level language
 understanding tasks tasks.
 Corpus Name vocabulary Size Tokens lines sentences
-wikitext=2 33278 2507007 44836 131262
+wikitext2 33278 2507007 44836 131262
 wikitext-103 267735 103690236 1809468 5343947
-1B Word Benchmark 793471 829250940 N/A N/A
+1B Word Benchmark 793471 829250940 NA NA
 Table 1: Training Corpus details
 4.1 Pre-Training Details
-Using the 16 curricula (8 for each corpus) we train an ELMo model using the original code3with a modiﬁed batch
-sampler created for competence based sampling. For baselines, we train Elmo models without our modiﬁed CBC
+Using the 16 curricula 8 for each corpus we train an ELMo model using the original code3with a modified batch
+sampler created for competence based sampling. For baselines, we train Elmo models without our modified CBC
 sampling using wikitext-2, wikitext-103. Following the original work, we train each curriculum-model variant for 10
 epochs on the pre-training corpus, use 2 stacked 4096 dimensional BiLSTMs, use dropout of 0.1, batch size of 128,
 and a context window of 20 tokens. Training was performed using 3 Nvidia 2080 TI GPUs requiring about 30 hours
 for the wikitext-103 and about an hour for wikitext-2. For CBC training hyperparameters, we performed a grid search
-onincrement and0values ﬁnding the lowest training perplexity at 0= 1e 10= 1e 1for wikitext-2 and
-0= 1e 3increment = 1e 5for wikitext-103.
-In the original implementation, the training loader loads a ﬁle, shufﬂe all the lines, and samples batches by iterating
-through the shufﬂed corpus. Our method load the full corpus, then select a batch at random from the examples that meet
-our model’s current competence. This changes data sampling to unconstrained random sampling without replacement to
+onincrement and0values finding the lowest training perplexity at 0 1e10 1e1for wikitext-2 and
+0 1e3increment  1e5for wikitext-103.
+In the original implementation, the training loader loads a file, shuffle all the lines, and samples batches by iterating
+through the shuffled corpus. Our method load the full corpus, then select a batch at random from the examples that meet
+our models current competence. This changes data sampling to unconstrained random sampling without replacement to
 sampling with replacement. Since our competence based sampling has a variety of sample lengths we use the padding
-token<PAD > as is common in NMT. All samples are padded to length 20 and the loss on these padding tokens
+tokenPAD  as is common in NMT. All samples are padded to length 20 and the loss on these padding tokens
 is set to zero. Since padding tokens for wikitext-103 we introduce 12,204,311 tokens equating to approximately 12
 percent more FLOPs.
 4.2 Transfer Learning
-After models have pretrained we evaluate on GLUE performance using the JIANT toolkit [ 17]. JIANT is an open-source
+After models have pretrained we evaluate on GLUE performance using the JIANT toolkit  17. JIANT is an open-source
 tool for conducting multi-task and transfer learning experiments in English to implement the GLUE benchmark. JIANT
-builds on the notion of a conﬁguration which provides all settings needed to run and reproduce an experiment in a
-simple text ﬁle. JIANT provides consistent data processing, classiﬁer implementation, and evaluation to ensure that
+builds on the notion of a configuration which provides all settings needed to run and reproduce an experiment in a
+simple text file. JIANT provides consistent data processing, classifier implementation, and evaluation to ensure that
 users of the framework can focus on the outputs and not worry about implementing benchmarking tasks like GLUE.
 JIANT uses the pretrained model weight along with a multi-layer perceptron with 512 hidden dimensions to train
-on each GLUE tasks. Each JIANT experiment ﬁxes training identically across tasks and inputs using a batch size of
-3https://github.com/allenai/bilm-tf
+on each GLUE tasks. Each JIANT experiment fixes training identically across tasks and inputs using a batch size of
+3https:github.comallenaibilm-tf
 4Curriculum Learning for Language Modeling
 8, random seed of 42 initial learning rate of 1e-1, dropout of 0.2. Training of each model continues until the model
 learning rate dips below 1e-6 or the model performance has not improved in 10 epochs. Unless another metric is
 explicitly mentioned, the GLUE sub-task metric is accuracy.
 4.3 Experimental Results
-Focusing on model pretraining performance, despite attempts in variation of 0andincrement , no implementation of
-CBC is able to approximate the baselines in term of perplexity on the held out portion of the wikitext-* dataset. Complete
+Focusing on model pretraining performance, despite attempts in variation of 0andincrement , no implementation of
+CBC is able to approximate the baselines in term of perplexity on the held out portion of the wikitext- dataset. Complete
 graphs can be found in the appendix but all curricula perplexities including the baseline are order of magnitudes higher
-than stochastic sampling. On wikitext-2, the best performance is achieved by the curricula baseline ( 0= 1) with a
+than stochastic sampling. On wikitext-2, the best performance is achieved by the curricula baseline  0 1 with a
 perplexity of 770, followed by random with a perplexity of 2105 well above the baseline of 151. We believe this is
 caused by the change in dataset distribution caused by our curriculum learning implementation. Similar effects are seen
 on wikitext-103 where unlike stochastic sampling, which achieve a perplexity of 36, curriculum methods are unable to
 achieve a perplexity under one thousand. Surprisingly, as data size scales we see a larger volatility in perplexity during
 training with respect to validation perplexity scores which we attribute to constantly shifting sample distribution caused
 by curriculum methods.
-As we move our focus to GLUE results on wikitext-2 based models in table 2, we ﬁnd that curriculum methods generally
-outperform stochastic sampling by 10%. We do not ﬁnd strong evidence that the structure of the curriculum matters
-as non curriculum ( 0= 1) performs better than 4 other curricula and the baseline. Perhaps most surprising, random
+As we move our focus to GLUE results on wikitext-2 based models in table 2, we find that curriculum methods generally
+outperform stochastic sampling by 10. We do not find strong evidence that the structure of the curriculum matters
+as non curriculum  0 1 performs better than 4 other curricula and the baseline. Perhaps most surprising, random
 outperforms the baseline when measure by overall glue score despite their being no formal structure in the training
-regime. Observing variability at an individual task level we ﬁnd only CoLA, STS-B and SST have broad variability in
+regime. Observing variability at an individual task level we find only CoLA, STS-B and SST have broad variability in
 performance. We believe this is because these tasks are smaller and more linguistically challenging.
-Focusing on results on larger corpus in table 3 we ﬁnd trends found in wikitext-2 no longer hold as top performance is
-achieved by stochastic unmodiﬁed baseline. We also note that the orderign of system performance does not hold across
+Focusing on results on larger corpus in table 3 we find trends found in wikitext-2 no longer hold as top performance is
+achieved by stochastic unmodified baseline. We also note that the orderign of system performance does not hold across
 datasets and as the pretraining dataset grows the variability between models decreases. Similar to the smaller corpus,
-we ﬁnd the highest sensitivity in ColA and ﬁnd variability in SST and STS-B has become more muted. Surprisingly,
+we find the highest sensitivity in ColA and find variability in SST and STS-B has become more muted. Surprisingly,
 given their had the worse performance in pretraining perplexity, the trigram curricula generate the best transfer task.
-Overall, we ﬁnd that CBC training provided worse performance on validation perplexity portion and improved
+Overall, we find that CBC training provided worse performance on validation perplexity portion and improved
 performance on transfer tasks when he pretraining corpus is small. We believe this reinforces the importance of the size
 of the pretraining corpus since a large corpus allows the model to learn better language representations without any
-structured training. We also ﬁnd a large disconnect in model pretraining perplexity and transfer task performance as
+structured training. We also find a large disconnect in model pretraining perplexity and transfer task performance as
 performance on one is not predicative of the other.
 Method Overall Cola SST MRPC STS-B QQP MNLI QNLI RTE WNLI DX
-dep 0.63 0.19 0.73 0.85/0.78 0.71/0.71 0.74/0.78 0.60 0.75 0.58 0.56 0.11
-unigram 0.63 0.18 0.77 0.86/0.78 0.68/0.67 0.74/0.79 0.60 0.75 0.56 0.54 0.13
-trigram 0.63 0.15 0.76 0.84/0.76 0.70/0.69 0.73/0.78 0.62 0.76 0.54 0.56 0.14
-length 0.63 0.19 0.75 0.84/0.77 0.66/0.65 0.73/0.78 0.60 0.75 0.57 0.56 0.13
-no curricula 0.62 0.15 0.75 0.84/0.77 0.71/0.71 0.73/0.78 0.61 0.72 0.54 0.56 0.12
-bigram 0.62 0.18 0.77 0.86/0.78 0.68/0.67 0.74/0.79 0.60 0.75 0.56 0.44 0.13
-random 0.61 0.00 0.76 0.85/0.78 0.70/0.70 0.72/0.78 0.61 0.75 0.58 0.56 0.14
-pos 0.61 0.00 0.74 0.84/0.77 0.66/0.66 0.71/0.77 0.61 0.75 0.59 0.56 0.16
-baseline 0.59 0.00 0.70 0.85/0.78 0.66/0.66 0.70/0.75 0.59 0.72 0.54 0.56 0.13
-length 0.53 0.01 0.75 0.81/0.67 0.71/0.71 0.54/0.68 0.33 0.51 0.59 0.52 0.01
+dep 0.63 0.19 0.73 0.850.78 0.710.71 0.740.78 0.60 0.75 0.58 0.56 0.11
+unigram 0.63 0.18 0.77 0.860.78 0.680.67 0.740.79 0.60 0.75 0.56 0.54 0.13
+trigram 0.63 0.15 0.76 0.840.76 0.700.69 0.730.78 0.62 0.76 0.54 0.56 0.14
+length 0.63 0.19 0.75 0.840.77 0.660.65 0.730.78 0.60 0.75 0.57 0.56 0.13
+no curricula 0.62 0.15 0.75 0.840.77 0.710.71 0.730.78 0.61 0.72 0.54 0.56 0.12
+bigram 0.62 0.18 0.77 0.860.78 0.680.67 0.740.79 0.60 0.75 0.56 0.44 0.13
+random 0.61 0.00 0.76 0.850.78 0.700.70 0.720.78 0.61 0.75 0.58 0.56 0.14
+pos 0.61 0.00 0.74 0.840.77 0.660.66 0.710.77 0.61 0.75 0.59 0.56 0.16
+baseline 0.59 0.00 0.70 0.850.78 0.660.66 0.700.75 0.59 0.72 0.54 0.56 0.13
+length 0.53 0.01 0.75 0.810.67 0.710.71 0.540.68 0.33 0.51 0.59 0.52 0.01
 Table 2: GLUE results for CBC models trained on wikitext-2.
 4.4 Failure of Competence Based Curriculum
 In our experiments we were quite surprised at the failure to learn the training data found in our implementation of
-competence based curriculum as shown by the high perplexity on the wikitext-* datasets. Based on the changes in
-validation perplexity we believe the model is over-ﬁtting on the altered training data. We believe the cause of this is
-our hyperparameter selection for 0andincrement . We realize that since each method is effusively sampling from a
+competence based curriculum as shown by the high perplexity on the wikitext- datasets. Based on the changes in
+validation perplexity we believe the model is over-fitting on the altered training data. We believe the cause of this is
+our hyperparameter selection for 0andincrement . We realize that since each method is effusively sampling from a
 different training distribution comparison of training perplexities are not comparable. Additionally, if we look at the
 difference in validation perplexity curves of various methods it is apparent that they are not learning at the same rate.
-Some methods like DEP, and POS do not see major ﬂuctuations indicating the chosen curriculum parameters work well
-while many of the n-gram methods consistently ﬂuctuate in a similar fashion indicating the chosen hyperparameters
-are sub optimal for them. Given the non trivial computational cost to explore 0andincrement for each method
+Some methods like DEP, and POS do not see major fluctuations indicating the chosen curriculum parameters work well
+while many of the n-gram methods consistently fluctuate in a similar fashion indicating the chosen hyperparameters
+are sub optimal for them. Given the non trivial computational cost to explore 0andincrement for each method
 5Curriculum Learning for Language Modeling
 Method Overall Cola SST MRPC STS-B QQP MNLI QNLI RTE WNLI DX
-baseline 0.67 0.28 0.86 0.87/0.80 0.77/0.77 0.72/0.76 0.64 0.76 0.61 0.54 0.14
-trigram 0.66 0.21 0.85 0.87/0.80 0.78/0.78 0.75/0.80 0.66 0.77 0.56 0.55 0.14
-no curriculum 0.66 0.21 0.83 0.87/0.8 0.77/0.77 0.75/0.79 0.64 0.77 0.58 0.56 0.15
-bigram 0.66 0.18 0.83 0.85/0.79 0.77/0.77 0.75/0.79 0.65 0.77 0.56 0.56 0.14
-length 0.66 0.21 0.82 0.85/0.72 0.77/0.77 0.73/0.79 0.63 0.75 0.58 0.56 0.14
-unigram 0.65 0.19 0.82 0.86/0.79 0.76/0.75 0.75/0.79 0.63 0.75 0.57 0.56 0.13
-random 0.65 0.18 0.84 0.86/0.79 0.77/0.77 0.75/0.80 0.64 0.77 0.58 0.49 0.14
-pos 0.65 0.16 0.83 0.86/0.79 0.76/0.76 0.75/0.79 0.63 0.73 0.57 0.56 0.14
-dep 0.64 0.23 0.85 0.86/0.78 0.78/0.78 0.75/0.79 0.64 0.76 0.54 0.42 0.14
+baseline 0.67 0.28 0.86 0.870.80 0.770.77 0.720.76 0.64 0.76 0.61 0.54 0.14
+trigram 0.66 0.21 0.85 0.870.80 0.780.78 0.750.80 0.66 0.77 0.56 0.55 0.14
+no curriculum 0.66 0.21 0.83 0.870.8 0.770.77 0.750.79 0.64 0.77 0.58 0.56 0.15
+bigram 0.66 0.18 0.83 0.850.79 0.770.77 0.750.79 0.65 0.77 0.56 0.56 0.14
+length 0.66 0.21 0.82 0.850.72 0.770.77 0.730.79 0.63 0.75 0.58 0.56 0.14
+unigram 0.65 0.19 0.82 0.860.79 0.760.75 0.750.79 0.63 0.75 0.57 0.56 0.13
+random 0.65 0.18 0.84 0.860.79 0.770.77 0.750.80 0.64 0.77 0.58 0.49 0.14
+pos 0.65 0.16 0.83 0.860.79 0.760.76 0.750.79 0.63 0.73 0.57 0.56 0.14
+dep 0.64 0.23 0.85 0.860.78 0.780.78 0.750.79 0.64 0.76 0.54 0.42 0.14
 Table 3: GLUE results for CBC methods trained on wikitext-103.
 and the disconnect seen between pre-training perplexity and performance on GLUE we did not perform additional
 hyperparameter optimization.
 5 Conclusion and Future Work
-In our work we do not ﬁnd strong evidence that the use of curriculum learning is able to improve language model
+In our work we do not find strong evidence that the use of curriculum learning is able to improve language model
 pretraining. Our CBC based training regimes are unable to learn a good representation of the training corpus but their
-representations transfer well to downstream NLP tasks. We ﬁnd that with a small pretraining corpus, CBC methods can
-outperform stochastic sampling but as corpus size scales the beneﬁt is lost. Moreover we do not ﬁnd any evidence that
-any type of heuristic for difﬁculty to be more apt for CBC.
-Leveraging recent work on training BERT in an academic setting [ 18] we will explore how our top performing methods
+representations transfer well to downstream NLP tasks. We find that with a small pretraining corpus, CBC methods can
+outperform stochastic sampling but as corpus size scales the benefit is lost. Moreover we do not find any evidence that
+any type of heuristic for difficulty to be more apt for CBC.
+Leveraging recent work on training BERT in an academic setting  18 we will explore how our top performing methods
 like trigram and random perform when their code becomes public. Building on promising results in model compression,
-[19] [20] we would like to explore how transfer learning effects compression. Inspired by the structure transformer-
+19 20 we would like to explore how transfer learning effects compression. Inspired by the structure transformer-
 based models, we would explore jointly how progressively scaling the number of transformer encoders while increasing
-data difﬁculty, or context windows as this has proven useful for GANs [21].
+data difficulty, or context windows as this has proven useful for GANs 21.
 References
-[1]Matthew E. Peters, Mark Neumann, Mohit Iyyer, Matt Gardner, Christopher Clark, Kenton Lee, and Luke
-Zettlemoyer. Deep contextualized word representations. ArXiv , abs/1802.05365, 2018.
-[2]Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. Bert: Pre-training of deep bidirectional
+1Matthew E. Peters, Mark Neumann, Mohit Iyyer, Matt Gardner, Christopher Clark, Kenton Lee, and Luke
+Zettlemoyer. Deep contextualized word representations. ArXiv , abs1802.05365, 2018.
+2Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. Bert: Pre-training of deep bidirectional
 transformers for language understanding. In NAACL-HLT , 2019.
-[3]Yu Sun, Shuohuan Wang, Yukun Li, Shikun Feng, Xuyi Chen, Han Zhang, Xin Tian, Danxiang Zhu, Hao Tian,
-and Hua Wu. Ernie: Enhanced representation through knowledge integration. ArXiv , abs/1904.09223, 2019.
-[4]Emma Strubell, Ananya Ganesh, and Andrew McCallum. Energy and policy considerations for deep learning in
+3Yu Sun, Shuohuan Wang, Yukun Li, Shikun Feng, Xuyi Chen, Han Zhang, Xin Tian, Danxiang Zhu, Hao Tian,
+and Hua Wu. Ernie: Enhanced representation through knowledge integration. ArXiv , abs1904.09223, 2019.
+4Emma Strubell, Ananya Ganesh, and Andrew McCallum. Energy and policy considerations for deep learning in
 nlp. In ACL, 2019.
-[5]Jean Kaplan, Sam McCandlish, Tom Henighan, Tom B. Brown, Benjamin Chess, Rewon Child, Scott Gray, Alec
-Radford, Jeffrey Wu, and Dario Amodei. Scaling laws for neural language models. ArXiv , abs/2001.08361, 2020.
-[6]Emmanouil Antonios Platanios, Otilia Stretcu, Graham Neubig, Barnabás Póczos, and Tom Michael Mitchell.
-Competence-based curriculum learning for neural machine translation. ArXiv , abs/1903.09848, 2019.
-[7]Xuan Zhang, Pamela Shapiro, Manish Kumar, P. McNamee, Marine Carpuat, and Kevin Duh. Curriculum learning
-for domain adaptation in neural machine translation. ArXiv , abs/1905.05816, 2019.
-[8]Gustavo Penha and C. Hauff. Curriculum learning strategies for ir. Advances in Information Retrieval , 12035:699
-– 713, 2020.
-[9]Benfeng Xu, Licheng Zhang, Zhendong Mao, Quan Wang, Hongtao Xie, and Yongdong Zhang. Curriculum
+5Jean Kaplan, Sam McCandlish, Tom Henighan, Tom B. Brown, Benjamin Chess, Rewon Child, Scott Gray, Alec
+Radford, Jeffrey Wu, and Dario Amodei. Scaling laws for neural language models. ArXiv , abs2001.08361, 2020.
+6Emmanouil Antonios Platanios, Otilia Stretcu, Graham Neubig, Barnabas Poczos, and Tom Michael Mitchell.
+Competence-based curriculum learning for neural machine translation. ArXiv , abs1903.09848, 2019.
+7Xuan Zhang, Pamela Shapiro, Manish Kumar, P. McNamee, Marine Carpuat, and Kevin Duh. Curriculum learning
+for domain adaptation in neural machine translation. ArXiv , abs1905.05816, 2019.
+8Gustavo Penha and C. Hauff. Curriculum learning strategies for ir. Advances in Information Retrieval , 12035:699
+ 713, 2020.
+9Benfeng Xu, Licheng Zhang, Zhendong Mao, Quan Wang, Hongtao Xie, and Yongdong Zhang. Curriculum
 learning for natural language understanding. In Proceedings of the 58th Annual Meeting of the Association for
-Computational Linguistics , pages 6095–6104, Online, July 2020. Association for Computational Linguistics.
-[10] Stephen Merity, Caiming Xiong, James Bradbury, and Richard Socher. Pointer sentinel mixture models. ArXiv ,
-abs/1609.07843, 2016.
-[11] Alex Wang, Amanpreet Singh, Julian Michael, Felix Hill, Omer Levy, and Samuel R. Bowman. Glue: A multi-task
-benchmark and analysis platform for natural language understanding. In BlackboxNLP@EMNLP , 2018.
+Computational Linguistics , pages 60956104, Online, July 2020. Association for Computational Linguistics.
+10 Stephen Merity, Caiming Xiong, James Bradbury, and Richard Socher. Pointer sentinel mixture models. ArXiv ,
+abs1609.07843, 2016.
+11 Alex Wang, Amanpreet Singh, Julian Michael, Felix Hill, Omer Levy, and Samuel R. Bowman. Glue: A multi-task
+benchmark and analysis platform for natural language understanding. In BlackboxNLPEMNLP , 2018.
 6Curriculum Learning for Language Modeling
-[12] Emmanouil Antonios Platanios, Otilia Stretcu, Graham Neubig, Barnabas Poczos, and Tom Mitchell. Competence-
+12 Emmanouil Antonios Platanios, Otilia Stretcu, Graham Neubig, Barnabas Poczos, and Tom Mitchell. Competence-
 based curriculum learning for neural machine translation. In Proceedings of the 2019 Conference of the North
 American Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1
-(Long and Short Papers) , Minneapolis, Minnesota, June 2019. Association for Computational Linguistics.
-[13] J. Elman. Learning and development in neural networks: the importance of starting small. Cognition , 48:71–99,
+Long and Short Papers , Minneapolis, Minnesota, June 2019. Association for Computational Linguistics.
+13 J. Elman. Learning and development in neural networks: the importance of starting small. Cognition , 48:7199,
 1993.
-[14] Yoshua Bengio, Jérôme Louradour, Ronan Collobert, and Jason Weston. Curriculum learning. In ICML ’09 , 2009.
-[15] Petru Soviany, Radu Tudor Ionescu, Paolo Rota, and N. Sebe. Curriculum learning: A survey. ArXiv ,
-abs/2101.10382, 2021.
-[16] Emma Strubell, Ananya Ganesh, and Andrew McCallum. Energy and policy considerations for deep learning
+14 Yoshua Bengio, Jerome Louradour, Ronan Collobert, and Jason Weston. Curriculum learning. In ICML 09 , 2009.
+15 Petru Soviany, Radu Tudor Ionescu, Paolo Rota, and N. Sebe. Curriculum learning: A survey. ArXiv ,
+abs2101.10382, 2021.
+16 Emma Strubell, Ananya Ganesh, and Andrew McCallum. Energy and policy considerations for deep learning
 in NLP. In Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics , pages
-3645–3650, Florence, Italy, July 2019. Association for Computational Linguistics.
-[17] Yada Pruksachatkun, Phil Yeres, Haokun Liu, Jason Phang, Phu Mon Htut, Alex Wang, Ian Tenney, and
+36453650, Florence, Italy, July 2019. Association for Computational Linguistics.
+17 Yada Pruksachatkun, Phil Yeres, Haokun Liu, Jason Phang, Phu Mon Htut, Alex Wang, Ian Tenney, and
 Samuel R. Bowman. jiant: A software toolkit for research on general-purpose text understanding models. ArXiv ,
-abs/2003.02249, 2020.
-[18] Peter Izsak, Moshe Berchansky, and Omer Levy. How to train bert with an academic budget. ArXiv ,
-abs/2104.07705, 2021.
-[19] Jonathan Frankle and Michael Carbin. The lottery ticket hypothesis: Finding sparse, trainable neural networks.
+abs2003.02249, 2020.
+18 Peter Izsak, Moshe Berchansky, and Omer Levy. How to train bert with an academic budget. ArXiv ,
+abs2104.07705, 2021.
+19 Jonathan Frankle and Michael Carbin. The lottery ticket hypothesis: Finding sparse, trainable neural networks.
 arXiv: Learning , 2019.
-[20] Adrian de Wynter and D. Perry. Optimal subarchitecture extraction for bert. ArXiv , abs/2010.10499, 2020.
-[21] Tero Karras, Timo Aila, Samuli Laine, and Jaakko Lehtinen. Progressive growing of gans for improved quality,
-stability, and variation. ArXiv , abs/1710.10196, 2017.
+20 Adrian de Wynter and D. Perry. Optimal subarchitecture extraction for bert. ArXiv , abs2010.10499, 2020.
+21 Tero Karras, Timo Aila, Samuli Laine, and Jaakko Lehtinen. Progressive growing of gans for improved quality,
+stability, and variation. ArXiv , abs1710.10196, 2017.
 6 Appendix
 6.1 Competence Based Curricula Perplexity Results
 Figure 1: Validation perplexity of each curriculum trained on based wikitext-2 measured every 100 batches.

@@ -1,11 +1,11 @@
 Vision-Language Pre-training with Object Contrastive Learning
 for 3D Scene Understanding
-Taolin Zhang1∗, Sunan He1∗, Tao Dai2⊠, Bin Chen3, Zhi Wang2and Shu-Tao Xia1,4
+Taolin Zhang1, Sunan He1, Tao Dai2, Bin Chen3, Zhi Wang2and Shu-Tao Xia1,4
 1Tsinghua Shenzhen International Graduate School, Tsinghua University
 2College of Computer Science and Software Engineering, Shenzhen University
 3Harbin Institute of Technology, Shenzhen
 4Research Center of Artificial Intelligence, Peng Cheng Laboratory
-{zhangtlin3,daitao.edu}@gmail.com,{hsn20,wangzhi}@mails.tsinghua.edu.cn,chenbin2021@hit.edu.cn,xiast@sz.tsinghua.edu.cn
+zhangtlin3,daitao.edugmail.com,hsn20,wangzhimails.tsinghua.edu.cn,chenbin2021hit.edu.cn,xiastsz.tsinghua.edu.cn
 ABSTRACT
 In recent years, vision language pre-training frameworks have made
 significant progress in natural language processing and computer
@@ -17,19 +17,19 @@ generalize well. We carefully investigate three common tasks in
 semantic 3D scene understanding, and derive key insights into the
 development of a pre-training model. Motivated by these observa-
 tions, we propose a vision-language pre-training framework 3DVLP
-(3D vision-language pre-training with object contrastive learning),
+3D vision-language pre-training with object contrastive learning,
 which transfers flexibly on 3D vision-language downstream tasks.
 3DVLP takes visual grounding as the proxy task and introduces
-Object-level IoU-guided Detection (OID) loss to obtain high-quality
+Object-level IoU-guided Detection OID loss to obtain high-quality
 proposals in the scene. Moreover, we design Object-level Cross-
-Contrastive alignment (OCC) task and Object-level Self-Contrastive
-learning (OSC) task to align the objects with descriptions and dis-
+Contrastive alignment OCC task and Object-level Self-Contrastive
+learning OSC task to align the objects with descriptions and dis-
 tinguish different objects in the scene, respectively. Extensive ex-
 periments verify the excellent performance of 3DVLP on three
 3D vision-language tasks, reflecting its superiority in semantic 3D
 scene understanding.
 CCS CONCEPTS
-•Computing methodologies →Computer vision ;Natural lan-
+Computing methodologies Computer vision ;Natural lan-
 guage processing ;Neural networks .
 KEYWORDS
 3D vision-language tasks, model pre-training , constrastive learning
@@ -39,17 +39,17 @@ research interest due to its wide applications such as automatic driv-
 ing, human-machine interaction, etc. Much progress has been made
 in semantic 3D scene understanding, with task-specific models con-
 tinuously pushing the state-of-the-art in various downstream tasks
-including visual grounding [ 6,7,48], dense captioning [ 11], and
-question answering [3].
+including visual grounding  6,7,48, dense captioning  11, and
+question answering 3.
 While effective on their respective benchmarks, the task-specific
 representations obtained by existing approaches prevent them from
 generalizing well to other tasks. A common practice for extracting
-∗Equal contribution.
-⊠Corresponding author: Tao Dai.
+Equal contribution.
+Corresponding author: Tao Dai.
 A large brown chair. An armchair on the right of the other chair.match
-FusionModule(a) 3D Visual Grounding
-(b) 3D Question Answering
-(c) 3D Dense Captioning
+FusionModulea 3D Visual Grounding
+b 3D Question Answering
+c 3D Dense Captioning
 selectA large brown chair. An armchair on the right of the other chair.
 captionWhat color is the armchairintheright?
 Brown.answerFusionModule
@@ -62,67 +62,67 @@ require an effective fusion module to understand the con-
 nection between point cloud and language.
 joint multimodal representation is to adopt the pre-training plus
 fine-tuning paradigm, whose effectiveness have been demonstrated
-by the remarkable success in 2D vision-language pre-training [ 2,10,
-24,25,36,46]. Existing works on 3D vision-language pre-training
+by the remarkable success in 2D vision-language pre-training  2,10,
+24,25,36,46. Existing works on 3D vision-language pre-training
 are still limited, which motivates us to introduce this paradigm into
 semantic 3D scene understanding in an appropriate way. However,
 3D vision-language pre-training differs from pre-training in NLP
 and 2D vision-language tasks since point cloud data is introduced
-[15]. The task-agnostic objectives designed in previous works can-
+15. The task-agnostic objectives designed in previous works can-
 not be directly applied to 3D vision-language pre-training due to
 the gap of downstream tasks. In light of these consideration, it
 is essential to identify the shared nature across different tasks in
 semantic 3D scene understanding to further determine the appro-
-priate pre-training model.arXiv:2305.10714v1  [cs.CV]  18 May 2023Figure 1 provides an intuitive depiction of the relationships
+priate pre-training model.arXiv:2305.10714v1  cs.CV  18 May 2023Figure 1 provides an intuitive depiction of the relationships
 among three 3D vision-language tasks. Two key observations emer-
 ages from the comparision of these tasks. Firstly, all of these tasks
 rely heavily on the object detection when applying two-stage pipeline
 models, which is a common practice in semantic 3D scene under-
-standing [ 7,11]. Secondly, 3D vision-language tasks require an
+standing  7,11. Secondly, 3D vision-language tasks require an
 effective fusion module to enable information interaction between
 point cloud and language for a deeper understanding of the rela-
 tionships between objects in the scene, such as the matching stage
-in the visual grounding [ 6,48] and the classification of answers in
-the question answering [3].
+in the visual grounding  6,48 and the classification of answers in
+the question answering 3.
 These observations in semantic 3D scene understanding pose sev-
 eral challenges in designing an effective training paradigm for the
 pre-training model to obtain universal embeddings and achieve bet-
 ter transfer performance flexibly in downstream tasks. Firstly, high-
 quality bounding boxes are required for object detection, which can
 be further fed into task-specific heads in downstream tasks. These
-boxes represent the model’s ability to segment the scene at the
+boxes represent the models ability to segment the scene at the
 object level, as demonstrated by works that use a detection-then-
-matching pipeline [ 1,6,7,48]. Secondly, object detection requires
+matching pipeline  1,6,7,48. Secondly, object detection requires
 the model to distinguish between different objects in the scene,
 especially when there are many objects similar to the target, which
-is common in real-life situations [ 7]. This means the model needs to
+is common in real-life situations  7. This means the model needs to
 be able to identify what makes objects distinct in the scene, which
 is a challenging task that has not yet been fully addressed. Thirdly,
 the fusion module suffers from the issue that the data come from
 different modalities are unaligned, as similar to the cross-modal
-problems in 2D vision language learning [ 10,24]. Point cloud fea-
+problems in 2D vision language learning  10,24. Point cloud fea-
 tures and word token embeddings exist in different spaces, making
 it challenging for the fusion module to model their interactions.
 To this end, we propose 3DVLP: vision-language pre-training
 with object contrastive learning in semantic 3D scene understand-
 ing. 3DVLP is the first pre-training framework that effectively ad-
-dresses the challenges mentioned above. (1) To obtain better object
+dresses the challenges mentioned above. 1 To obtain better object
 bounding boxes, we introduce Object-level IoU-guided Detec-
-tion (OID) loss in our pre-training pipeline. Specifically, we leverage
+tion OID loss in our pre-training pipeline. Specifically, we leverage
 visual grounding as the proxy task, as it shares the same objective
 of localizing high-quality bounding boxes. Additionally, we incor-
-porate Distance IoU (DIoU) loss [ 50] and label smoothing in the
+porate Distance IoU DIoU loss  50 and label smoothing in the
 matching stage at the object level to achieve faster convergence and
-better performance. (2) We further introduce Object-level Self-
-Contrastive learning (OSC) task to distinguish the target object
+better performance. 2 We further introduce Object-level Self-
+Contrastive learning OSC task to distinguish the target object
 from others. The self-contrastive learning is performed at the object
 level, where boxes with an IoU higher than a specific threshold
 are considered positive samples, while others are regarded as neg-
 ative ones. This self-contrastive loss is designed to bring positive
 samples closer to each other and far away from the negative ones.
-(3) To enable fully information intereaction between point cloud
+3 To enable fully information intereaction between point cloud
 and language, we further design Object-level Cross-Contrastive
-alignment (OCC) task as a proxy task to align the unimodal rep-
+alignment OCC task as a proxy task to align the unimodal rep-
 resentation across these two modalities. We use a similar IoU filter
 as in OSC to generate positive and negative samples, which are
 then fed as inputs to calculate the cross-contrastive loss. The cross-
@@ -136,92 +136,92 @@ of-the-art performance on multiple 3D vision-language multimodal
 tasks. The strong generalization capabilities and short training time
 for fine-tuning of 3DVLP makes it suitable for a wide range of
 applications and multiple tasks.
-The contributions of this study are summarized as follows: (1)
+The contributions of this study are summarized as follows: 1
 A 3D vision-language pre-training framework called 3DVLP has
 been proposed, achieving the unification of the tasks in seman-
-tic 3D scene understanding. (2) We introduce Object-level IoU-
+tic 3D scene understanding. 2 We introduce Object-level IoU-
 guided Detection loss into the pre-training pipeline to obtain high-
 quality bounding boxes for downstream tasks. We also present two
 proxy tasks at the object level, including the Object-level Cross-
 Contrastive alignment task and Object-level Self-Contrastive learn-
 ing task, which facilitate cross-modal alignment and help the model
-distinguish objects more accurately, respectively. (3) We conduct ex-
+distinguish objects more accurately, respectively. 3 We conduct ex-
 tensive experiments and empirically demonstrate the effectiveness
 of our method in semantic 3D scene understanding.
 2 RELATED WORK
 2.1 Vision-language Pre-training
 Vision-language pre-training are proposed to improve the perfor-
 mance in downstream tasks and has been widely explored in re-
-cent approaches [ 10,22–26,34,35]. It is a common practice to
+cent approaches  10,2226,34,35. It is a common practice to
 pre-train the model with large-scale image-text pair datasets, usu-
-ally craweled from the web [ 19,34]. Borrowed from the insight in
-NLP tasks [ 5,13,21,28], various learning objectives are proposed
+ally craweled from the web  19,34. Borrowed from the insight in
+NLP tasks  5,13,21,28, various learning objectives are proposed
 for cross-modal pre-training, enabling the model to capture the re-
-lationship between data from different modalities. CLIP [ 34] aligns
+lationship between data from different modalities. CLIP  34 aligns
 the unimodal image representation and language representation by
 contrastive loss and maximizes similarity of correct pairs. ALBEF
-[24] and Uniter [ 10] further apply image-text matching and masked
+24 and Uniter  10 further apply image-text matching and masked
 language modeling tasks, enabling model to capture more complex
 interactions between image and text. Li et al. introduces captioning
-loss in BLIP [ 23] to address the issue of noisy image-text pairs, and
+loss in BLIP  23 to address the issue of noisy image-text pairs, and
 further bootstraps representation learning from frozen pre-trained
-unimodal models in BLIP-2 [22].
+unimodal models in BLIP-2 22.
 Pre-training for 3D vision language tasks also suffers from mis-
 aligned data across different modalities, leading to difficulties in
-training the fusion layer [ 24,42]. Motivated by the common prac-
-tice in 2D vision language tasks [ 24,47], we introduce contrastive
+training the fusion layer  24,42. Motivated by the common prac-
+tice in 2D vision language tasks  24,47, we introduce contrastive
 alignment task into 3D vision-language learning and enhance the
 performance of the pre-training model.
 2.2 3D Visual-Langauge Tasks
 Recently, semantic 3D scene understanding has raised great interest
 and has been widely explored in recent approaches across various
-tasks, including 3D visual grounding [ 6,7,48], 3D dense captioning
-[11], and 3D question answering [3].
+tasks, including 3D visual grounding  6,7,48, 3D dense captioning
+11, and 3D question answering 3.
 3D visual grounding aims to locate a region of interest in a scene
-based on a referring description. Chen et al. [ 7] introduces the
+based on a referring description. Chen et al.  7 introduces the
 ScanRefer dataset and proposes an end-to-end visual grounding
-framework. Achlioptas et al. [ 1] collects two datasets containingFusionlayerPretraining tasks
+framework. Achlioptas et al.  1 collects two datasets containingFusionlayerPretraining tasks
 Object-level Self-Contrastive alignmentA large brown chair. An armchair on the right of the other chair.Encode
-Object-level Cross-Contrastive learningCross AttentionVisual Grounding HeadDownstream HeadsMLP𝐿!"#𝐿!##𝐿!$%+𝐿&'TransformerDecoder𝐿#()MLP𝐿*(PointCloudEncoder
+Object-level Cross-Contrastive learningCross AttentionVisual Grounding HeadDownstream HeadsMLPL!"L!L!L'TransformerDecoderLMLPLPointCloudEncoder
 LanguageEncoderFigure 2: Pipeline of 3DVLP in semantic 3D scene understanding. 3DVLP takes visual grounding as the proxy task and utilizes
-Object-level IoU-guided Detection (OID) loss to boost the performance of the object detector. We also introduce Object-level
+Object-level IoU-guided Detection OID loss to boost the performance of the object detector. We also introduce Object-level
 Cross-Contrastive alignment task and Object-level Self-Contrastive learning task in the pre-training stage, which facilitate
 cross-modal alignment and enable the model to distinguish objects more accurately, respectively.
 Nr3D and Sr3D with high-quality referential utterances. Most ex-
 isting methods rely on a detection-then-match pipeline to tackle
-the grounding task and aim to develop model’s ability to capture
+the grounding task and aim to develop models ability to capture
 the connections between proposal and language description, which
-is usually implemented by a cross-attention module [ 39]. For in-
-stance, 3DVG-Transformer [ 48] introduces coordinate-guided con-
+is usually implemented by a cross-attention module  39. For in-
+stance, 3DVG-Transformer  48 introduces coordinate-guided con-
 textual aggregation module to enhance proposal generation and
-cross-modal proposal disambiguation. HAM[ 9] shifts attention to
+cross-modal proposal disambiguation. HAM 9 shifts attention to
 contextual information and develops both local and global attention
-module for better end-to-end grounding, while BUTD-DETR[ 18]
-presents a DETR-like [ 51] referential grounding model that incor-
-porates guidance from language, points, and objects. 3D-SPS[ 30],
+module for better end-to-end grounding, while BUTD-DETR 18
+presents a DETR-like  51 referential grounding model that incor-
+porates guidance from language, points, and objects. 3D-SPS 30,
 however, propose the first one-stage end-to-end framework via
 keypoints selection and mines the cross-modal relationship based
 on points.
 Dense captioning in 3D scene requires model to derive high-
 quality object bounding box and the corresponding descriptions
-from point cloud data. Scan2Cap [ 11] extends the dense captioning
+from point cloud data. Scan2Cap  11 extends the dense captioning
 task to 3D scenes based on the ScanRefer dataset and establishes a
 messege-passing network to model the connections between ob-
-jects. SpaCap3D[ 41] investigates the relative spatiality of objects
+jects. SpaCap3D 41 investigates the relative spatiality of objects
 and build a spatiality-guided transformer to generate captions. Im-
 portantly, it designs a object-centric decoder by using a vision token
 as information carrier of the target object.
 3D visual question answering is another vision-language task
 in which model are expected to generate a correct answer pro-
-vided with the point cloud and a question. ScanQA[ 3] collects 41k
+vided with the point cloud and a question. ScanQA 3 collects 41k
 question-answer pairs and brings the question-answering task into
 3D scenes. Besides, it propose a 3D-QA baseline model by cast-
 ing the answer generation task as a classification problem. FE-
-3DGQA[ 49] proposes anthoer datasets and predicts the answer
+3DGQA 49 proposes anthoer datasets and predicts the answer
 through a token encoding and fusion module based on attention.Some previous works have made efforts to capture the connec-
 tion among the tasks above and dig out the basic relationship be-
-tween object proposals and language expressions. 3DJCG[ 6] and
-D3Net [ 8] model the joint training of 3D dense captioning and
+tween object proposals and language expressions. 3DJCG 6 and
+D3Net  8 model the joint training of 3D dense captioning and
 3D visual grounding, thereby boosting the performance of model
 in both tasks. However, to the best of our knowledge, no frame-
 work has leveraged the 3D vision-language pre-training model to
@@ -236,10 +236,10 @@ fusion feature for downstream tasks. The training of 3DVLP can
 be mainly divided into the pre-training stage and the fine-tuning
 stage. In the pre-training stage, 3DVLP utilizes visual grounding
 as the proxy task and employs Object-level IoU-guided Detection
-(OID) loss for high-quality object detection. Additionally, 3DVLP
+OID loss for high-quality object detection. Additionally, 3DVLP
 is pre-trained on other designed proxy tasks, including Object-
-level Cross-Contrastive alignment (OCC) and Object-level Self-
-Contrastive learning (OSC). In the finetuning stage, we transfer the
+level Cross-Contrastive alignment OCC and Object-level Self-
+Contrastive learning OSC. In the finetuning stage, we transfer the
 backbone of 3DVLP to downstream tasks with task-specific heads.
 3.1 Object-level IoU-guided Detection Loss
 We consider visual grounding as the proxy task since it shares
@@ -247,19 +247,19 @@ the same objective with the pre-training model of obtaining high-
 quality proposals. Additionally, we propose Object-level IoU-guided
 Detection loss to enhance the performance of the object detector,
 as demonstrated in Fig. 4a.
-Specifically, we introduce the Distance IoU (DIoU) loss [ 50] into
+Specifically, we introduce the Distance IoU DIoU loss  50 into
 the visual grounding pipeline for bounding box regression. GivenIoU Filter
-𝐼𝑜𝑈≥𝛿𝐼𝑜𝑈≥𝛿PositivePositiveNegative𝐼𝑜𝑈≤𝛿PointCloudEncoderFigure 3: Illustration of the IoU filter in 3DVLP. To apply la-
+IoUIoUPositivePositiveNegativeIoUPointCloudEncoderFigure 3: Illustration of the IoU filter in 3DVLP. To apply la-
 bel smoothing and contrastive loss at the object level, pro-
-posals with IoU higher than a threshold 𝛿are considered
+posals with IoU higher than a threshold are considered
 positive samples while others are regarded as the negative
 ones.
-the predicted proposal b𝑝and ground truth b𝑔𝑡, we calulate the
+the predicted proposal bpand ground truth bgt, we calulate the
 IoU between them and have the following regression loss:
-L𝐷𝐼𝑜𝑈(b𝑝,b𝑔𝑡)=1−𝐼𝑜𝑈+𝜌2 b𝑝,b𝑔𝑡
-𝑐2, (1)
-where𝑐is the diagonal length of the smallest enclosing box cover-
-ing the two boxes. However, previous approaches[ 6,48] treats the
+LDIoUbp,bgt1IoU2bp,bgt
+c2, 1
+wherecis the diagonal length of the smallest enclosing box cover-
+ing the two boxes. However, previous approaches 6,48 treats the
 matching stage in visual grounding task as a classification problem
 and use the proposal with the highest IoU as a supervised label to
 train the fusion module. In this case, the DIoU loss can only be ap-
@@ -269,24 +269,24 @@ detector, there can be multiple boxes pointing to the target object,
 and these boxes may share similar semantic information, making it
 difficult to achieve accurate matching with a one-hot label.
 Label smoothing is a regularization technique that prevents the
-model from overconfident prediction [ 31] and is suitable for address-
+model from overconfident prediction  31 and is suitable for address-
 ing such matching problems. Specifically, we apply label smoothing
 by incorporating an IoU filter into training, as shown in Fig. 3.
-Given a pre-defined IoU threshold 𝛿and the weight factor 𝜀, posi-
+Given a pre-defined IoU threshold and the weight factor , posi-
 tive proposals are filtered according to their IoU with the ground
 truth, and weights are assigned to them based on their total count,
-denoted by 𝐾. The weight of proposal 𝑝in the soft label is shown
-in Equ. (2).
-𝑦𝑝= 
-1−𝜀if𝐼𝑜𝑈𝑝=𝐼𝑜𝑈𝑚𝑎𝑥
-𝜀
-𝐾if𝐼𝑜𝑈𝑝≥𝛿and𝐼𝑜𝑈𝑝≠𝐼𝑜𝑈𝑚𝑎𝑥
-0 otherwise(2)
+denoted by K. The weight of proposal pin the soft label is shown
+in Equ. 2.
+yp 
+1ifIoUpIoUmax
+
+KifIoUpandIoUpIoUmax
+0 otherwise2
 We further combine DIoU loss and label smoothing to obtain our
-OID loss, as demonstrated in Equ. (3).
-L𝑂𝐼𝐷=∑︁
-𝑝𝑦𝑝·L𝐷𝐼𝑜𝑈(b𝑝,b𝑔𝑡). (3)3.2 Object-level Cross-contrastive Alignment
-As a common practice [ 6,48], a cross-modal attention module is
+OID loss, as demonstrated in Equ. 3.
+LOID
+pypLDIoUbp,bgt. 33.2 Object-level Cross-contrastive Alignment
+As a common practice  6,48, a cross-modal attention module is
 applied in semantic 3D scene understanding for feature fusion be-
 tween language and point cloud embedding. However, it is observed
 that the data distribution across different modalities is not well-
@@ -300,7 +300,7 @@ tion target of contrastive loss. This can ultimately lead to a deterio-
 ration in performance or even failure to converge.
 Based on these observations, we reconsider contrastive learning
 at the object level and introduce the Object-level Cross-Contrastive
-alignment (OCC) task to enhance the performance of the cross fu-
+alignment OCC task to enhance the performance of the cross fu-
 sion module, as shown in Fig. 4b. The OCC task is proposed to align
 the distribution of cross-modal data. Specifically, in the training
 stage, we introduce the target detection boxes of real objects and
@@ -314,54 +314,54 @@ the features of negative samples away with the contrastive loss to
 achieve better cross-modal understanding.
 Formally, we have the following contrastive loss, which serves
 as the loss function for our OCC task.
-LOCC=−1
-2E(bgt,𝑇)∼𝐷h
-logÍ
-𝑝∈𝑃𝑝𝑜𝑠𝑒𝑥𝑝(𝑠(𝐻𝑝,𝑇))
-Í
-^𝑝∈𝑃𝑝𝑜𝑠∪𝑃𝑛𝑒𝑔exp(𝑠(𝐻^𝑝,𝑇))
-+logÍ
-𝑝∈𝑃𝑝𝑜𝑠exp(𝑠(𝑇,𝐻𝑝))
-Í
-^𝑝∈𝑃𝑝𝑜𝑠∪𝑃𝑛𝑒𝑔exp(𝑠(𝑇,𝐻^𝑝))i
-.(4)
-where𝐻𝑝represents the embedding of proposal 𝑝, and𝑇denotes
-the language embedding. Given Ias the indicator function, 𝐼𝑜𝑈(·,·)
-as the IoU score between two boxes, and 𝛿as the IoU threshold, we
-have𝑃𝑝𝑜𝑠={𝑝|𝐼𝑜𝑈(b𝑝,b𝑔𝑡)≥𝛿}as the set of proposals contain-
-ing positive samples while 𝑃𝑛𝑒𝑔={𝑝|𝐼𝑜𝑈(b𝑝,b𝑔𝑡)<𝛿}containing
-the negative ones. 𝑠(·,·)represents the similarity score function for
+LOCC1
+2Ebgt,TDh
+logI
+pPposexpsHp,T
+I
+pPposPnegexpsHp,T
+logI
+pPposexpsT,Hp
+I
+pPposPnegexpsT,Hpi
+.4
+whereHprepresents the embedding of proposal p, andTdenotes
+the language embedding. Given Ias the indicator function, IoU,
+as the IoU score between two boxes, and as the IoU threshold, we
+havePpospIoUbp,bgtas the set of proposals contain-
+ing positive samples while PnegpIoUbp,bgtcontaining
+the negative ones. s,represents the similarity score function for
 measuring the similarity between two types of features, such as by
 performing a dot product operation.
-Note that the threshold 𝛿determines how close positive samples
+Note that the threshold determines how close positive samples
 should be to align with the language embedding. Specifically, when
-𝛿=𝐼𝑜𝑈𝑚𝑎𝑥, Equ. (4) only considers the proposal with the highest
+IoUmax, Equ. 4 only considers the proposal with the highest
 IoU to be the positive sample and reverts to the original formula of
 traditional pairwise contrastive loss.
 3.3 Object-level Self-contrastive Learning
 In semantic 3D scene understanding, the presence of similar objects
-in the scene can significantly affect the model’s matching perfor-
+in the scene can significantly affect the models matching perfor-
 mance. Therefore, a well-designed pre-training model should be
 capable of accurately distinguishing between objects in the scene
-and understanding what makes them similar or different. AchievingOIDGroundTruthIoUFilterDIoU𝐿!"#Proposals
-LabelSmoothing𝐻!𝑃"#$𝑃!%&(a) Object-level IoU-guided Detection
-OCCGroundTruthIoUFilterConstrastive Loss𝐿!""TokensProposals
-𝑇𝐻!𝑃"#$𝑃!%& (b) Object-level Cross-contrastive Alignment
-OSCGroundTruthIoUFilterConstrastive Loss𝐿!"#Proposals
-𝑃!"#𝐻$𝑃$%& (c) Object-level Self-Contrastive Learning
-Figure 4: Illustration of Object-level IoU-guided Detection (OID) loss, Object-level Cross-contrastive alignment (OCC) and
-Object-level Self-Contrastive learning (OSC) pre-training tasks. All the modules utilize a IoU filter to select positive proposals.
-this is a fundamental task that challenges the model’s overall under-
+and understanding what makes them similar or different. AchievingOIDGroundTruthIoUFilterDIoUL!"Proposals
+LabelSmoothingH!P"P!a Object-level IoU-guided Detection
+OCCGroundTruthIoUFilterConstrastive LossL!""TokensProposals
+TH!P"P! b Object-level Cross-contrastive Alignment
+OSCGroundTruthIoUFilterConstrastive LossL!"Proposals
+P!"HP c Object-level Self-Contrastive Learning
+Figure 4: Illustration of Object-level IoU-guided Detection OID loss, Object-level Cross-contrastive alignment OCC and
+Object-level Self-Contrastive learning OSC pre-training tasks. All the modules utilize a IoU filter to select positive proposals.
+this is a fundamental task that challenges the models overall under-
 standing of the scene. To address this issue, one effective approach
 is to utilize contrastive loss that incentivizes the model to capture
 features that differentiate objects. This can lead to an improved
-matching performance and enhance the model’s ability to identify
+matching performance and enhance the models ability to identify
 the target object based on the given description. Similarly, we re-
 quire an object-level self-contrastive loss instead of the pairwise
 loss to effectively differentiate between objects and improve the
-model’s semantic understanding of the scene.
+models semantic understanding of the scene.
 Therefore, we introduce the Object-level Self-Contrastive learn-
-ing (OSC) task for object detection, as shown in Fig. 4c. The OSC
+ing OSC task for object detection, as shown in Fig. 4c. The OSC
 task is proposed for unimodal point cloud data and aims to optimize
 the embedding generated by the point cloud encoder. Based on the
 idea in OCC task, we utilize the IoU threshold to select positive
@@ -370,34 +370,34 @@ mizing the self-contrastive loss, 3DVLP encourages the features
 of the boxes targeting the ground truth object to be as dissimilar
 as possible from those of other boxes, thereby enabling the fusion
 module to distinguish different objects easily.
-Following Equ. (4), we replace the language embedding with the
+Following Equ. 4, we replace the language embedding with the
 embedding of proposals to obtain the corresponding contrastive
-loss for OSC module, as shown in Equ. (5).
-LOSC=−Eb𝑔𝑡∼𝐷h
-logÍ
-𝑝,^𝑝∈𝑃𝑝𝑜𝑠exp(𝑠(𝐻𝑝,𝐻^𝑝))
-Í
-𝑝,^𝑝∈𝑃𝑝𝑜𝑠∪𝑃𝑛𝑒𝑔exp(𝑠(𝐻𝑝,𝐻^𝑝))i
-.(5)
+loss for OSC module, as shown in Equ. 5.
+LOSCEbgtDh
+logI
+p,pPposexpsHp,Hp
+I
+p,pPposPnegexpsHp,Hpi
+.5
 3.4 Heads for Downstream Tasks
 3.4.1 3D Visual Grounding. 3D visual grounding task involves
 matching a language description to the corresponding detection
 box in a given point cloud data of the scene. As a common practice,
 we model this matching task as a classification problem by directly
 using the proposal features obtained from the cross-modal attention
-module, transforming it into a 𝑛-class classification task, where 𝑛
+module, transforming it into a n-class classification task, where n
 represents the total number of predicted boxes. The classification
 label serves as the supervision information to optimize the MLP
 matching module using cross-entropy loss:
-L𝑉𝐺=−1
-|𝑃𝑚|∑︁
-𝑝𝑚∈𝑃𝑚𝑦𝑚·𝑙𝑜𝑔(𝑝𝑚), (6)where|𝑃𝑚|denotes the total number of the proposals, 𝑝𝑚represents
-the matching score calculated for each proposal, and 𝑦𝑚represents
+LVG1
+Pm
+pmPmymlogpm, 6wherePmdenotes the total number of the proposals, pmrepresents
+the matching score calculated for each proposal, and ymrepresents
 the corresponding weight in the classification label.
 3.4.2 3D Dense Captioning. 3D dense captioning task involves
 generating corresponding descriptions for all objects in a given
 scene. To implement the captioning module, we follow the design
-in SpaCap3D [ 41] and insert a special visual token with proposal
+in SpaCap3D  41 and insert a special visual token with proposal
 embedding into the initial position of the sequence, which interacts
 with the word tokens in the attention module. We can then divide
 this task into training and inference stages.
@@ -406,20 +406,20 @@ about the ground truth, we associate each real object with the near-
 est proposal and then use the corresponding embedding to perform
 captioning. We use the natural description as the supervised label
 to optimize the captioning module through cross-entropy loss:
-L𝐶𝐴𝑃=−1
-|𝑃𝑐𝑎𝑝|∑︁
-𝑝𝑐𝑎𝑝∈𝑃𝑐𝑎𝑝𝑦𝑐𝑎𝑝·𝑙𝑜𝑔(𝑝𝑐𝑎𝑝), (7)
-where𝑃𝑐𝑎𝑝represents the score vector of each word in the sequence,
-while𝑝𝑐𝑎𝑝and𝑦𝑐𝑎𝑝denote the prediction vector and the ground
+LCAP1
+Pcap
+pcapPcapycaplogpcap, 7
+wherePcaprepresents the score vector of each word in the sequence,
+whilepcapandycapdenote the prediction vector and the ground
 truth label of a single word,respectively. Note that we also utilizes
-masked language modeling [13] in dense captioning.
+masked language modeling 13 in dense captioning.
 In the inference stage, we need to perform captioning on all the
 objects in the scene. Therefore, all the proposals obtained from the
 point cloud encoder are fed into the Non-Maximum Suppression
 filter and then into the captioning module as queries.
 3.4.3 3D Question Answering. 3D question answering task involves
 providing answers to questions about objects given the scene data.
-Following ScanQA [ 3], we simplify this task into a multi-class
+Following ScanQA  3, we simplify this task into a multi-class
 classification task for all possible answers. We count and deduplicate
 all answers, and consider each remaining answer as an output class
 in the classification task.
@@ -427,37 +427,37 @@ Specifically, a lightweight MLP is adopted to predict the score
 for each answer based on the fusion feature, and the answer with
 the highest score is selected as the final answer. Cross-entropy loss
 is used as the loss function to optimize the answering module:
-L𝑄𝐴=−1
-|𝑃𝑞𝑎|∑︁
-𝑝𝑞𝑎∈𝑃𝑞𝑎𝑦𝑞𝑎·𝑙𝑜𝑔(𝑝𝑞𝑎), (8)where𝑝𝑞𝑎represents the answer score computed by the model, and
-𝑦𝑞𝑎represents the ground truth label.
+LQA1
+Pqa
+pqaPqayqalogpqa, 8wherepqarepresents the answer score computed by the model, and
+yqarepresents the ground truth label.
 4 EXPERIMENT
 4.1 Datasets and Implementation Details
 Visual Grounding Dataset: We select the benchmark dataset
-ScanRefer [ 7] for visual grounding task. It consists of 800 3D scenes
-from the ScanNet dataset [ 12], each annotated with bounding boxes
+ScanRefer  7 for visual grounding task. It consists of 800 3D scenes
+from the ScanNet dataset  12, each annotated with bounding boxes
 around objects of interest and corresponding text descriptions. To
-evaluate our results, we employed two evaluation metrics: IoU@0.25
-and IoU@0.5, which measure the percentage of times the proposals
+evaluate our results, we employed two evaluation metrics: IoU0.25
+and IoU0.5, which measure the percentage of times the proposals
 have an IoU greater than the threshold.
 Dense Captioning Dataset: We conduct experiments on Scan2Cap
-dataset [ 11] to evaluate the effectiveness of our method for the
+dataset  11 to evaluate the effectiveness of our method for the
 dense captioning task. Similar to Scan2Cap, we jointly measure the
 quaility of the generated model with captioning matrics including
-CiDEr [ 40], BlEU-4 [ 32], METEOR [ 4] and ROUGE [ 27], cited as C,
+CiDEr  40, BlEU-4  32, METEOR  4 and ROUGE  27, cited as C,
 B-4, M and R, respectively. We combine the metrics above with an
-IOU threshold and adopt the m@kIoU metric:
-𝑚@𝑘𝐼𝑜𝑈 =1
-𝑁𝑁∑︁
-𝑖=1𝑚𝑖·I(𝐼𝑜𝑈≥𝑘) (9)
+IOU threshold and adopt the mkIoU metric:
+mkIoU 1
+NN
+i1miIIoUk 9
 where m represents the captioning metric, k is the threshold of IoU
 andIstands for the indicator function.
 Question Answering Dataset: We perform a quantitative eval-
 uation on the question answering tasks over the ScanQA dataset
-[3]. The ScanQA dataset consists of 41363 questions and 32337
+3. The ScanQA dataset consists of 41363 questions and 32337
 unique answers from 800 scenes derived from the ScanNet scenes.
-Following the evaluation methodology in [ 3], EM@1 and EM@10
-are used as the evaluation metric. EM@K is the percentage of pre-
+Following the evaluation methodology in  3, EM1 and EM10
+are used as the evaluation metric. EMK is the percentage of pre-
 dictions where the top K predicted answers exactly match any of
 the ground-truth answers.
 4.2 Implementations Details
@@ -465,47 +465,47 @@ We first train 3DVLP over the proposed proxy tasks including vi-
 sual grounding, OCC and OSC in the pre-training stage. We then
 evaluate our methods on the dense captioning and question answer-
 ing tasks by transferring the pre-trained model and finetuning it
-through tasks-specific loss. Similar to 3DJCG[ 6], we adopt FCOS[ 37]
+through tasks-specific loss. Similar to 3DJCG 6, we adopt FCOS 37
 method to generate the initial object proposals and use 8 sentences
 per scene in a batch. We train 200 epochs over the grounding task
-in the pre-training stage. Importantly, we use VoteNet [ 33] as our
-point cloud encoder and a frozen BERT[ 13] as the language en-
+in the pre-training stage. Importantly, we use VoteNet  33 as our
+point cloud encoder and a frozen BERT 13 as the language en-
 coder to avoid over-fitting on short-length sentences in ScanRefer
 dataset. For captioning tasks, we use a Transformer decoder with
 6 layers and 128 as the hidden size. For QA task, the hidden size
 of the classification layer is set to be 128 as well. We empirically
-set the batch size as 8 and adopt the AdamW optimizer [ 29] with
+set the batch size as 8 and adopt the AdamW optimizer  29 with
 the cosing learning rate decay strategy. The initial learning rate is
 set to be 0.002 for the detector and 5e-4 for other modules in the
 3DVLP. Codes are implemented by Pytorch and run on a Nvidia
 3090 GPU.
 0.10 0.15 0.20 0.25 0.30 0.35 0.40
-Threshold in the IoU filter0.460.480.500.520.54Accuracy (%)
-3DVLP_oidOverall Acc@0.25
+Threshold in the IoU filter0.460.480.500.520.54Accuracy 
+3DVLPoidOverall Acc0.25
 0.10 0.15 0.20 0.25 0.30 0.35 0.40
-Threshold in the IoU filter0.360.380.400.420.44Accuracy (%)
-3DVLP_oidOverall Acc@0.5Figure 5: Comparison of the performance when using dif-
+Threshold in the IoU filter0.360.380.400.420.44Accuracy 
+3DVLPoidOverall Acc0.5Figure 5: Comparison of the performance when using dif-
 ferent threshold in the IoU filter. In addition, we com-
 pare a variant of 3DVLP with only OID loss, referred to as
-3DVLP_oid.
+3DVLPoid.
 4.3 Baselines
 In 3D visual grounding task, we compare 3DVLP with the bench-
-mark methods including "3D" models [ 6,7,14,16,18,30,45,48] and
-"2D+3D" models [ 7,8,17,30,43,48] . The "3D" models only utilizes
+mark methods including "3D" models  6,7,14,16,18,30,45,48 and
+"2D3D" models  7,8,17,30,43,48 . The "3D" models only utilizes
 raw attributes in point cloud input features, such as the coordi-
 nates, colors, and normal vectors of the original point cloud, while
-"2D+3D" models use 2D multi-view features as additional inputs.
+"2D3D" models use 2D multi-view features as additional inputs.
 In 3D dense captioning task, we choose end-to-end models of this
-task as the baseline algorithms for comparison. [ 6,8,11,20,41]. In
-3D question answering task, we compare 3DVLP with ScanQA[ 3],
-FE-3DGQA[49] and 2D models with MCAN[44].
+task as the baseline algorithms for comparison.  6,8,11,20,41. In
+3D question answering task, we compare 3DVLP with ScanQA 3,
+FE-3DGQA49 and 2D models with MCAN44.
 4.4 Comparison with State-of-the-art Methods
 4.4.1 3D visual grounding task. We present the results of 3D visual
 grounding in Table 1. The results indicate that 3DVLP performs
 remarkably well and outperforms the baselines by a large margin.
 In terms of unique scenes, 3DVLP achieves the highest accuracy in
-Acc@0.5 and ranks second in Acc@0.25, indicating the significant
-impact of our OID loss in developing the model’s ability to identify
+Acc0.5 and ranks second in Acc0.25, indicating the significant
+impact of our OID loss in developing the models ability to identify
 high-quality bounding boxes. Previous work solely optimizes the
 center and size of the proposals, while the introduction of the OID
 loss improves the quality of proposals targeting the ground truth
@@ -516,68 +516,68 @@ objects in the scene, leading to poor matching results. However, the
 introduction of OSC and OCC tasks in 3DVLP enables it to achieve
 competitive performance in multiple metrics, showcasing its ability
 to accurately locate objects in complex scenes. In the overall metric,
-3DVLP’s performance surpasses the baseline by 0.71% in Acc@0.5
-and also ranks second in Acc@0.25, demonstrating its effectiveness
+3DVLPs performance surpasses the baseline by 0.71 in Acc0.5
+and also ranks second in Acc0.25, demonstrating its effectiveness
 in 3D visual grounding.
 4.4.2 3D dense captioning task. As presented in Table 2, it is evi-
 dent that 3DVLP shows excellent transfer performance in dense
 captioning task. Importantly, the point cloud encoder in 3DVLP
 extracts universal features that generalize well in dense captioning,
 enabling 3DVLP to outperform other baselines by a large extent.
-Specifically, 3DVLP achieves a remarkable improvement of 2.55%,
-4.93%, 2.30%, and 2.61% in terms of C@0.25, C@0.5, R@0.25, andTable 1: Comparison of different methods in 3D visual grounding task. We measure the percentage of the correctly predicted
+Specifically, 3DVLP achieves a remarkable improvement of 2.55,
+4.93, 2.30, and 2.61 in terms of C0.25, C0.5, R0.25, andTable 1: Comparison of different methods in 3D visual grounding task. We measure the percentage of the correctly predicted
 bounding boxes whose IoU with the ground-truth boxes are larger than 0.25 and 0.5, respectively.
 Method Venue DataUnique Multiple Overall
-Acc@0.25 Acc@0.5 Acc@0.25 Acc@0.5 Acc@0.25 Acc@0.5
-ScanRefer [7] ECCV2020 3D 67.64 46.19 32.06 21.26 38.97 26.10
-TGNN[16] AAAI2021 2D 68.61 56.80 29.84 23.18 37.37 29.70
-InstanceRefer [45] ICCV2021 3D 77.45 66.83 31.27 24.77 40.23 32.93
-FFL-3DOG[14] ICCV2021 3D - 67.94 - 25.70 - 34.01
-3DVG-Transformer [48] ICCV2021 3D 77.16 58.47 38.38 28.70 45.90 34.47
-3DJCG[6] CVPR2022 3D 78.75 61.30 40.13 30.08 47.62 36.14
-3D-SPS[30] CVPR2022 3D 81.63 64.77 39.48 29.61 47.65 36.43
-BUTD-DETR[18] ECCV2022 3D 84.20 66.30 46.60 35.10 52.20 39.80
-ScanRefer [7] ECCV2020 2D+3D 76.33 53.51 32.73 21.11 41.19 27.40
-SAT[43] ICCV2021 2D+3D 73.21 50.83 37.64 25.16 44.54 30.14
-3DVG-Transformer [48] ICCV2021 2D+3D 81.93 60.64 39.30 28.42 47.57 34.67
-Multi-View Trans [17] CVPR2022 2D+3D 77.67 66.45 31.92 25.26 40.80 33.26
-3D-SPS[30] CVPR2022 2D+3D 84.12 66.72 40.32 29.82 48.82 36.98
-3DJCG[6] CVPR2022 2D+3D 83.47 64.34 41.39 30.82 49.56 37.33
-D3Net [8] ECCV2022 2D+3D - 70.35 - 30.05 - 37.87
-3DVLP - 2D+3D 85.18 70.04 43.65 33.40 51.70 40.51
+Acc0.25 Acc0.5 Acc0.25 Acc0.5 Acc0.25 Acc0.5
+ScanRefer 7 ECCV2020 3D 67.64 46.19 32.06 21.26 38.97 26.10
+TGNN16 AAAI2021 2D 68.61 56.80 29.84 23.18 37.37 29.70
+InstanceRefer 45 ICCV2021 3D 77.45 66.83 31.27 24.77 40.23 32.93
+FFL-3DOG14 ICCV2021 3D - 67.94 - 25.70 - 34.01
+3DVG-Transformer 48 ICCV2021 3D 77.16 58.47 38.38 28.70 45.90 34.47
+3DJCG6 CVPR2022 3D 78.75 61.30 40.13 30.08 47.62 36.14
+3D-SPS30 CVPR2022 3D 81.63 64.77 39.48 29.61 47.65 36.43
+BUTD-DETR18 ECCV2022 3D 84.20 66.30 46.60 35.10 52.20 39.80
+ScanRefer 7 ECCV2020 2D3D 76.33 53.51 32.73 21.11 41.19 27.40
+SAT43 ICCV2021 2D3D 73.21 50.83 37.64 25.16 44.54 30.14
+3DVG-Transformer 48 ICCV2021 2D3D 81.93 60.64 39.30 28.42 47.57 34.67
+Multi-View Trans 17 CVPR2022 2D3D 77.67 66.45 31.92 25.26 40.80 33.26
+3D-SPS30 CVPR2022 2D3D 84.12 66.72 40.32 29.82 48.82 36.98
+3DJCG6 CVPR2022 2D3D 83.47 64.34 41.39 30.82 49.56 37.33
+D3Net 8 ECCV2022 2D3D - 70.35 - 30.05 - 37.87
+3DVLP - 2D3D 85.18 70.04 43.65 33.40 51.70 40.51
 Table 2: Comparison of different methods in 3D dense captioning task. We report the result with the percentage of the predicted
 bounding boxes whose IoU with the ground truth are greater than 0.25 and 0.5.
-Method Venue C@0.25 B-4@0.25 M@0.25 R@0.25 C@0.5 B-4@0.5 M@0.5 R@0.5
-Scan2Cap [11] CVPR 2021 56.82 34.18 26.29 55.27 39.08 23.32 21.97 44.78
-MORE[20] ECCV 2022 62.91 36.25 26.75 56.33 40.94 22.93 21.66 44.42
-SpaCap3D[41] IJCAI 2022 63.30 36.46 26.71 55.71 44.02 25.26 22.33 45.36
-3DJCG [6] CVPR2022 64.70 40.17 27.66 59.23 49.48 31.03 24.22 50.80
-D3Net [8] ECCV2022 - - - - 46.07 30.29 24.35 51.67
+Method Venue C0.25 B-40.25 M0.25 R0.25 C0.5 B-40.5 M0.5 R0.5
+Scan2Cap 11 CVPR 2021 56.82 34.18 26.29 55.27 39.08 23.32 21.97 44.78
+MORE20 ECCV 2022 62.91 36.25 26.75 56.33 40.94 22.93 21.66 44.42
+SpaCap3D41 IJCAI 2022 63.30 36.46 26.71 55.71 44.02 25.26 22.33 45.36
+3DJCG 6 CVPR2022 64.70 40.17 27.66 59.23 49.48 31.03 24.22 50.80
+D3Net 8 ECCV2022 - - - - 46.07 30.29 24.35 51.67
 3DVLP - 67.25 41.30 36.27 61.53 54.41 34.10 34.34 54.28
 Table 3: Comparison of different methods in 3D question
 answering task. The results are presented with the percent-
 age of predictions where the top K predicted answers ex-
 actly match any of the ground-truth answers. We also report
-Acc@0.25 and Acc@0.5 metrics, similar to the visual ground-
+Acc0.25 and Acc0.5 metrics, similar to the visual ground-
 ing metrics.
-Method EM@1 EM@10 Acc@0.25 Acc@0.5
-VoteNet [33]+MCAN 17.33 45.54 - -
-ScanRefer [7]+MCAN 18.59 46.76 23.53 11.76
-ScanQA[3] 21.05 51.23 24.96 15.42
-FE-3DGQA[49] 22.26 54.51 26.62 18.83
+Method EM1 EM10 Acc0.25 Acc0.5
+VoteNet 33MCAN 17.33 45.54 - -
+ScanRefer 7MCAN 18.59 46.76 23.53 11.76
+ScanQA3 21.05 51.23 24.96 15.42
+FE-3DGQA49 22.26 54.51 26.62 18.83
 3DVLP 24.03 57.91 33.38 26.12
 Table 4: Ablation analysis. We provide quantitative results
 of the overall accuracy in visual grounding and the metric
-under IoU=0.5 setting in dense captioning.
+under IoU0.5 setting in dense captioning.
 Module Visual Gounding Dense Captioning
-OID OCC OSC Acc@0.25 Acc@0.5 C@0.5 B-4@0.5 M@0.5 R@0.5
+OID OCC OSC Acc0.25 Acc0.5 C0.5 B-40.5 M0.5 R0.5
 50.59 37.96 53.12 31.90 33.93 52.27
 ! 50.46 39.49 52.91 33.91 34.28 54.08
 ! 51.15 38.44 53.24 32.79 33.98 52.99
 ! 50.91 38.28 51.41 32.93 34.00 52.94
-!!! 51.70 40.51 54.41 34.10 34.34 54.28R@0.5, respectively. Moreover, the results show that 3DVLP out-
-performs the second baseline by 8.61% in M@0.25 and 9.99% in
-M@0.5. Among various evaluation metrics, METEOR focuses on
+!!! 51.70 40.51 54.41 34.10 34.34 54.28R0.5, respectively. Moreover, the results show that 3DVLP out-
+performs the second baseline by 8.61 in M0.25 and 9.99 in
+M0.5. Among various evaluation metrics, METEOR focuses on
 capturing the semantic similarity and fluency between the output
 and the ground truth, thereby indicating the generalization ability
 of the encoder in 3DVLP. In comparison to SpaCap3D, which shares
@@ -589,22 +589,22 @@ pre-training stage.
 the most striking observation emerging from the comparison is
 that 3DVLP consistently outperforms other methods and improves
 the performance in the question answering task. For example,
-3DVLP achieves approximately 1.7%-2.4% improvement in EM@1
-and EM@10 compared to the baseline. Moreover, it can be con-
+3DVLP achieves approximately 1.7-2.4 improvement in EM1
+and EM10 compared to the baseline. Moreover, it can be con-
 cluded that question answering benefits from the pre-training
 model when compared to ScanQA, as 3DVLP utilizes the same
-classification head. Furthermore, 3DVLP provides a boost by 6.76%
-and 7.23% in Acc@0.25 and Acc@0.5, respectively. However, it is
+classification head. Furthermore, 3DVLP provides a boost by 6.76
+and 7.23 in Acc0.25 and Acc0.5, respectively. However, it is
 noteworthy that the results are lower than those achieved in visual
 grounding, primarily due to the inclusion of the task-specific loss
-in the question answering task.(c) In the corner of the room are boxes. The first two bookshelves in the 
-corner to the right of the boxes are the bookshelves we are looking for.(d) A black computer with a blue screen. It's located on a wooden 
+in the question answering task.c In the corner of the room are boxes. The first two bookshelves in the 
+corner to the right of the boxes are the bookshelves we are looking for.d A black computer with a blue screen. It's located on a wooden 
 desk with a wooden chair in front of it.
-(e) This is a brown ottoman in front of a brown sofa. The ottoman has a 
-black backpack, and a black duffel bag, and a box of tissues.(f) The coffee table is to the left of the black armchair. It is to the right 
-of the brown armchair. (a) T here is a tall chair pulled up to the table in the room. It is the 
+e This is a brown ottoman in front of a brown sofa. The ottoman has a 
+black backpack, and a black duffel bag, and a box of tissues.f The coffee table is to the left of the black armchair. It is to the right 
+of the brown armchair. a T here is a tall chair pulled up to the table in the room. It is the 
 second from the right. 
-(b) There is a monitor sitting on the left side of a desk.  The desk is 
+b There is a monitor sitting on the left side of a desk.  The desk is 
 smaller and curved of the two desks sitting back -to-back next to the 
 window.
 Ground Truth
@@ -617,18 +617,18 @@ investigate the contribution of each module in 3DVLP. The results in
 Table 4 demonstrate that both visual grounding and dense caption-
 ing tasks benefit from each proposed module. In visual grounding,
 the OID loss significantly improves the quality of the predicted
-bounding boxes, thereby enhancing Acc@0.5 to a large degree.
+bounding boxes, thereby enhancing Acc0.5 to a large degree.
 Furthermore, neither the introduction of OSC nor OCC provides a
-remarkable boost in Acc@0.25, indicating the superiority of mod-
+remarkable boost in Acc0.25, indicating the superiority of mod-
 eling optimization at the object level in complex scenes. In dense
 captioning, the improvement of the model is consistent with that
 in visual grounding by combining the modules together.
 Is the improvement in OSC and OCC sensitive to the thresh-
 old used the IoU filter? To have a better understanding of the
-threshold𝛿used in the IoU filter, we estimate the results of the
-overall Acc in visual grounding with the varying 𝛿. Moreover, we
+thresholdused in the IoU filter, we estimate the results of the
+overall Acc in visual grounding with the varying . Moreover, we
 also include 3DVLP with only OID loss as a base variant, referred
-as 3DVLP_oid. As shown in Fig. 5, the performance obviously
+as 3DVLPoid. As shown in Fig. 5, the performance obviously
 improves when increasing the threshold from 0.1 to 0.25. This is
 because proposals targeting other objects can be incorrectly consid-
 ered as positive samples and thus mislead the training optimization
@@ -642,7 +642,7 @@ is a reasonable tradeoff.
 4.6 Qualitative Results
 To further explore how 3DVLP improves the performance in vi-
 sual grounding, we provide the comparison results with 3D-SPS as
-shown in Figure 6. Figure 6(d) indicates that OID loss contribute
+shown in Figure 6. Figure 6d indicates that OID loss contribute
 to more high-quaility bounding boxes, thereby boosting the per-
 formance. Additionally, these examples demonstrate that 3DVLP
 has a better understanding of the relationship between scene and
@@ -665,184 +665,184 @@ mance. Future work needs to focus on dealing with the fusion of
 point cloud and language, desirably about the full interaction of
 multi-level information.
 REFERENCES
-[1]Panos Achlioptas, Ahmed Abdelreheem, Fei Xia, Mohamed Elhoseiny, and
+1Panos Achlioptas, Ahmed Abdelreheem, Fei Xia, Mohamed Elhoseiny, and
 Leonidas Guibas. 2020. Referit3d: Neural listeners for fine-grained 3d object
-identification in real-world scenes. In Computer Vision–ECCV 2020: 16th European
-Conference, Glasgow, UK, August 23–28, 2020, Proceedings, Part I 16 . Springer,
-422–440.
-[2]Jean-Baptiste Alayrac, Jeff Donahue, Pauline Luc, Antoine Miech, Iain Barr, Yana
+identification in real-world scenes. In Computer VisionECCV 2020: 16th European
+Conference, Glasgow, UK, August 2328, 2020, Proceedings, Part I 16 . Springer,
+422440.
+2Jean-Baptiste Alayrac, Jeff Donahue, Pauline Luc, Antoine Miech, Iain Barr, Yana
 Hasson, Karel Lenc, Arthur Mensch, Katherine Millican, Malcolm Reynolds, et al .
 2022. Flamingo: a visual language model for few-shot learning. Advances in
-Neural Information Processing Systems 35 (2022), 23716–23736.
-[3]Daichi Azuma, Taiki Miyanishi, Shuhei Kurita, and Motoaki Kawanabe. 2022.
+Neural Information Processing Systems 35 2022, 2371623736.
+3Daichi Azuma, Taiki Miyanishi, Shuhei Kurita, and Motoaki Kawanabe. 2022.
 ScanQA: 3D question answering for spatial scene understanding. In Proceedings
-of the IEEE/CVF Conference on Computer Vision and Pattern Recognition . 19129–
+of the IEEECVF Conference on Computer Vision and Pattern Recognition . 19129
 19139.
-[4]Satanjeev Banerjee and Alon Lavie. 2005. METEOR: An automatic metric for
+4Satanjeev Banerjee and Alon Lavie. 2005. METEOR: An automatic metric for
 MT evaluation with improved correlation with human judgments. In Proceedings
 of the acl workshop on intrinsic and extrinsic evaluation measures for machine
-translation and/or summarization . 65–72.
-[5]Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D Kaplan,
+translation andor summarization . 6572.
+5Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D Kaplan,
 Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda
 Askell, et al .2020. Language models are few-shot learners. Advances in neural
-information processing systems 33 (2020), 1877–1901.
-[6]Daigang Cai, Lichen Zhao, Jing Zhang, Lu Sheng, and Dong Xu. 2022. 3djcg: A
+information processing systems 33 2020, 18771901.
+6Daigang Cai, Lichen Zhao, Jing Zhang, Lu Sheng, and Dong Xu. 2022. 3djcg: A
 unified framework for joint dense captioning and visual grounding on 3d point
-clouds. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern
-Recognition . 16464–16473.
-[7]Dave Zhenyu Chen, Angel X Chang, and Matthias Nießner. 2020. Scanrefer: 3d ob-
-ject localization in rgb-d scans using natural language. In Computer Vision–ECCV
-2020: 16th European Conference, Glasgow, UK, August 23–28, 2020, Proceedings,
-Part XX . Springer, 202–221.
-[8]Dave Zhenyu Chen, Qirui Wu, Matthias Nießner, and Angel X Chang. 2021.
+clouds. In Proceedings of the IEEECVF Conference on Computer Vision and Pattern
+Recognition . 1646416473.
+7Dave Zhenyu Chen, Angel X Chang, and Matthias Niener. 2020. Scanrefer: 3d ob-
+ject localization in rgb-d scans using natural language. In Computer VisionECCV
+2020: 16th European Conference, Glasgow, UK, August 2328, 2020, Proceedings,
+Part XX . Springer, 202221.
+8Dave Zhenyu Chen, Qirui Wu, Matthias Niener, and Angel X Chang. 2021.
 D3Net: a speaker-listener architecture for semi-supervised dense captioning and
-visual grounding in RGB-D scans. arXiv preprint arXiv:2112.01551 (2021).
-[9]Jiaming Chen, Weixin Luo, Xiaolin Wei, Lin Ma, and Wei Zhang. 2022. HAM:
+visual grounding in RGB-D scans. arXiv preprint arXiv:2112.01551 2021.
+9Jiaming Chen, Weixin Luo, Xiaolin Wei, Lin Ma, and Wei Zhang. 2022. HAM:
 Hierarchical Attention Model with High Performance for 3D Visual Grounding.
-arXiv preprint arXiv:2210.12513 (2022).
-[10] Yen-Chun Chen, Linjie Li, Licheng Yu, Ahmed El Kholy, Faisal Ahmed, Zhe Gan,
+arXiv preprint arXiv:2210.12513 2022.
+10 Yen-Chun Chen, Linjie Li, Licheng Yu, Ahmed El Kholy, Faisal Ahmed, Zhe Gan,
 Yu Cheng, and Jingjing Liu. 2020. Uniter: Universal image-text representation
-learning. In Computer Vision–ECCV 2020: 16th European Conference, Glasgow, UK,
-August 23–28, 2020, Proceedings, Part XXX . Springer, 104–120.
-[11] Zhenyu Chen, Ali Gholami, Matthias Nießner, and Angel X Chang. 2021.
+learning. In Computer VisionECCV 2020: 16th European Conference, Glasgow, UK,
+August 2328, 2020, Proceedings, Part XXX . Springer, 104120.
+11 Zhenyu Chen, Ali Gholami, Matthias Niener, and Angel X Chang. 2021.
 Scan2cap: Context-aware dense captioning in rgb-d scans. In Proceedings of
-the IEEE/CVF Conference on Computer Vision and Pattern Recognition . 3193–3203.
-[12] Angela Dai, Angel X Chang, Manolis Savva, Maciej Halber, Thomas Funkhouser,
-and Matthias Nießner. 2017. Scannet: Richly-annotated 3d reconstructions of
+the IEEECVF Conference on Computer Vision and Pattern Recognition . 31933203.
+12 Angela Dai, Angel X Chang, Manolis Savva, Maciej Halber, Thomas Funkhouser,
+and Matthias Niener. 2017. Scannet: Richly-annotated 3d reconstructions of
 indoor scenes. In Proceedings of the IEEE conference on computer vision and pattern
-recognition . 5828–5839.
-[13] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. 2018. Bert:
+recognition . 58285839.
+13 Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. 2018. Bert:
 Pre-training of deep bidirectional transformers for language understanding. arXiv
-preprint arXiv:1810.04805 (2018).
-[14] Mingtao Feng, Zhen Li, Qi Li, Liang Zhang, XiangDong Zhang, Guangming Zhu,
+preprint arXiv:1810.04805 2018.
+14 Mingtao Feng, Zhen Li, Qi Li, Liang Zhang, XiangDong Zhang, Guangming Zhu,
 Hui Zhang, Yaonan Wang, and Ajmal Mian. 2021. Free-form description guided
 3d visual graph network for object grounding in point cloud. In Proceedings of
-the IEEE/CVF International Conference on Computer Vision . 3722–3731.
-[15] Yulan Guo, Hanyun Wang, Qingyong Hu, Hao Liu, Li Liu, and Mohammed
+the IEEECVF International Conference on Computer Vision . 37223731.
+15 Yulan Guo, Hanyun Wang, Qingyong Hu, Hao Liu, Li Liu, and Mohammed
 Bennamoun. 2020. Deep learning for 3d point clouds: A survey. IEEE transactions
-on pattern analysis and machine intelligence 43, 12 (2020), 4338–4364.
-[16] Pin-Hao Huang, Han-Hung Lee, Hwann-Tzong Chen, and Tyng-Luh Liu. 2021.
+on pattern analysis and machine intelligence 43, 12 2020, 43384364.
+16 Pin-Hao Huang, Han-Hung Lee, Hwann-Tzong Chen, and Tyng-Luh Liu. 2021.
 Text-guided graph neural networks for referring 3d instance segmentation. In
-Proceedings of the AAAI Conference on Artificial Intelligence , Vol. 35. 1610–1618.
-[17] Shijia Huang, Yilun Chen, Jiaya Jia, and Liwei Wang. 2022. Multi-view transformer
-for 3d visual grounding. In Proceedings of the IEEE/CVF Conference on Computer
-Vision and Pattern Recognition . 15524–15533.
-[18] Ayush Jain, Nikolaos Gkanatsios, Ishita Mediratta, and Katerina Fragkiadaki. 2022.
-Bottom up top down detection transformers for language grounding in imagesand point clouds. In Computer Vision–ECCV 2022: 17th European Conference, Tel
-Aviv, Israel, October 23–27, 2022, Proceedings, Part XXXVI . Springer, 417–433.
-[19] Chao Jia, Yinfei Yang, Ye Xia, Yi-Ting Chen, Zarana Parekh, Hieu Pham, Quoc Le,
+Proceedings of the AAAI Conference on Artificial Intelligence , Vol. 35. 16101618.
+17 Shijia Huang, Yilun Chen, Jiaya Jia, and Liwei Wang. 2022. Multi-view transformer
+for 3d visual grounding. In Proceedings of the IEEECVF Conference on Computer
+Vision and Pattern Recognition . 1552415533.
+18 Ayush Jain, Nikolaos Gkanatsios, Ishita Mediratta, and Katerina Fragkiadaki. 2022.
+Bottom up top down detection transformers for language grounding in imagesand point clouds. In Computer VisionECCV 2022: 17th European Conference, Tel
+Aviv, Israel, October 2327, 2022, Proceedings, Part XXXVI . Springer, 417433.
+19 Chao Jia, Yinfei Yang, Ye Xia, Yi-Ting Chen, Zarana Parekh, Hieu Pham, Quoc Le,
 Yun-Hsuan Sung, Zhen Li, and Tom Duerig. 2021. Scaling up visual and vision-
 language representation learning with noisy text supervision. In International
-Conference on Machine Learning . PMLR, 4904–4916.
-[20] Yang Jiao, Shaoxiang Chen, Zequn Jie, Jingjing Chen, Lin Ma, and Yu-Gang Jiang.
+Conference on Machine Learning . PMLR, 49044916.
+20 Yang Jiao, Shaoxiang Chen, Zequn Jie, Jingjing Chen, Lin Ma, and Yu-Gang Jiang.
 2022. More: Multi-order relation mining for dense captioning in 3d scenes. In
-Computer Vision–ECCV 2022: 17th European Conference, Tel Aviv, Israel, October
-23–27, 2022, Proceedings, Part XXXV . Springer, 528–545.
-[21] Zhenzhong Lan, Mingda Chen, Sebastian Goodman, Kevin Gimpel, Piyush
+Computer VisionECCV 2022: 17th European Conference, Tel Aviv, Israel, October
+2327, 2022, Proceedings, Part XXXV . Springer, 528545.
+21 Zhenzhong Lan, Mingda Chen, Sebastian Goodman, Kevin Gimpel, Piyush
 Sharma, and Radu Soricut. 2019. Albert: A lite bert for self-supervised learning
-of language representations. arXiv preprint arXiv:1909.11942 (2019).
-[22] Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi. 2023. BLIP-2: Boot-
+of language representations. arXiv preprint arXiv:1909.11942 2019.
+22 Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi. 2023. BLIP-2: Boot-
 strapping Language-Image Pre-training with Frozen Image Encoders and Large
-Language Models. arXiv preprint arXiv:2301.12597 (2023).
-[23] Junnan Li, Dongxu Li, Caiming Xiong, and Steven Hoi. 2022. Blip: Bootstrapping
+Language Models. arXiv preprint arXiv:2301.12597 2023.
+23 Junnan Li, Dongxu Li, Caiming Xiong, and Steven Hoi. 2022. Blip: Bootstrapping
 language-image pre-training for unified vision-language understanding and
-generation. In International Conference on Machine Learning . PMLR, 12888–12900.
-[24] Junnan Li, Ramprasaath Selvaraju, Akhilesh Gotmare, Shafiq Joty, Caiming Xiong,
+generation. In International Conference on Machine Learning . PMLR, 1288812900.
+24 Junnan Li, Ramprasaath Selvaraju, Akhilesh Gotmare, Shafiq Joty, Caiming Xiong,
 and Steven Chu Hong Hoi. 2021. Align before fuse: Vision and language repre-
 sentation learning with momentum distillation. Advances in neural information
-processing systems 34 (2021), 9694–9705.
-[25] Liunian Harold Li, Mark Yatskar, Da Yin, Cho-Jui Hsieh, and Kai-Wei Chang.
+processing systems 34 2021, 96949705.
+25 Liunian Harold Li, Mark Yatskar, Da Yin, Cho-Jui Hsieh, and Kai-Wei Chang.
 2019. Visualbert: A simple and performant baseline for vision and language.
-arXiv preprint arXiv:1908.03557 (2019).
-[26] Xiujun Li, Xi Yin, Chunyuan Li, Pengchuan Zhang, Xiaowei Hu, Lei Zhang, Lijuan
+arXiv preprint arXiv:1908.03557 2019.
+26 Xiujun Li, Xi Yin, Chunyuan Li, Pengchuan Zhang, Xiaowei Hu, Lei Zhang, Lijuan
 Wang, Houdong Hu, Li Dong, Furu Wei, et al .2020. Oscar: Object-semantics
-aligned pre-training for vision-language tasks. In Computer Vision–ECCV 2020:
-16th European Conference, Glasgow, UK, August 23–28, 2020, Proceedings, Part XXX
-16. Springer, 121–137.
-[27] Chin-Yew Lin. 2004. Rouge: A package for automatic evaluation of summaries.
-InText summarization branches out . 74–81.
-[28] Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Mandar Joshi, Danqi Chen, Omer
+aligned pre-training for vision-language tasks. In Computer VisionECCV 2020:
+16th European Conference, Glasgow, UK, August 2328, 2020, Proceedings, Part XXX
+16. Springer, 121137.
+27 Chin-Yew Lin. 2004. Rouge: A package for automatic evaluation of summaries.
+InText summarization branches out . 7481.
+28 Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Mandar Joshi, Danqi Chen, Omer
 Levy, Mike Lewis, Luke Zettlemoyer, and Veselin Stoyanov. 2019. Roberta: A
 robustly optimized bert pretraining approach. arXiv preprint arXiv:1907.11692
-(2019).
-[29] Ilya Loshchilov and Frank Hutter. 2017. Decoupled weight decay regularization.
-arXiv preprint arXiv:1711.05101 (2017).
-[30] Junyu Luo, Jiahui Fu, Xianghao Kong, Chen Gao, Haibing Ren, Hao Shen, Huaxia
+2019.
+29 Ilya Loshchilov and Frank Hutter. 2017. Decoupled weight decay regularization.
+arXiv preprint arXiv:1711.05101 2017.
+30 Junyu Luo, Jiahui Fu, Xianghao Kong, Chen Gao, Haibing Ren, Hao Shen, Huaxia
 Xia, and Si Liu. 2022. 3d-sps: Single-stage 3d visual grounding via referred point
-progressive selection. In Proceedings of the IEEE/CVF Conference on Computer
-Vision and Pattern Recognition . 16454–16463.
-[31] Rafael Müller, Simon Kornblith, and Geoffrey E Hinton. 2019. When does label
-smoothing help? Advances in neural information processing systems 32 (2019).
-[32] Kishore Papineni, Salim Roukos, Todd Ward, and Wei-Jing Zhu. 2002. Bleu: a
+progressive selection. In Proceedings of the IEEECVF Conference on Computer
+Vision and Pattern Recognition . 1645416463.
+31 Rafael Muller, Simon Kornblith, and Geoffrey E Hinton. 2019. When does label
+smoothing help? Advances in neural information processing systems 32 2019.
+32 Kishore Papineni, Salim Roukos, Todd Ward, and Wei-Jing Zhu. 2002. Bleu: a
 method for automatic evaluation of machine translation. In Proceedings of the
-40th annual meeting of the Association for Computational Linguistics . 311–318.
-[33] Charles R Qi, Or Litany, Kaiming He, and Leonidas J Guibas. 2019. Deep hough
-voting for 3d object detection in point clouds. In proceedings of the IEEE/CVF
-International Conference on Computer Vision . 9277–9286.
-[34] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh,
+40th annual meeting of the Association for Computational Linguistics . 311318.
+33 Charles R Qi, Or Litany, Kaiming He, and Leonidas J Guibas. 2019. Deep hough
+voting for 3d object detection in point clouds. In proceedings of the IEEECVF
+International Conference on Computer Vision . 92779286.
+34 Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh,
 Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark,
 et al.2021. Learning transferable visual models from natural language supervision.
-InInternational conference on machine learning . PMLR, 8748–8763.
-[35] Weijie Su, Xizhou Zhu, Yue Cao, Bin Li, Lewei Lu, Furu Wei, and Jifeng Dai. 2019.
+InInternational conference on machine learning . PMLR, 87488763.
+35 Weijie Su, Xizhou Zhu, Yue Cao, Bin Li, Lewei Lu, Furu Wei, and Jifeng Dai. 2019.
 Vl-bert: Pre-training of generic visual-linguistic representations. arXiv preprint
-arXiv:1908.08530 (2019).
-[36] Hao Tan and Mohit Bansal. 2019. Lxmert: Learning cross-modality encoder
-representations from transformers. arXiv preprint arXiv:1908.07490 (2019).
-[37] Zhi Tian, Chunhua Shen, Hao Chen, and Tong He. 2019. Fcos: Fully convolutional
-one-stage object detection. In Proceedings of the IEEE/CVF international conference
-on computer vision . 9627–9636.
-[38] Laurens Van der Maaten and Geoffrey Hinton. 2008. Visualizing data using t-SNE.
-Journal of machine learning research 9, 11 (2008).
-[39] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones,
-Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. 2017. Attention is all
-you need. Advances in neural information processing systems 30 (2017).
-[40] Ramakrishna Vedantam, C Lawrence Zitnick, and Devi Parikh. 2015. Cider:
+arXiv:1908.08530 2019.
+36 Hao Tan and Mohit Bansal. 2019. Lxmert: Learning cross-modality encoder
+representations from transformers. arXiv preprint arXiv:1908.07490 2019.
+37 Zhi Tian, Chunhua Shen, Hao Chen, and Tong He. 2019. Fcos: Fully convolutional
+one-stage object detection. In Proceedings of the IEEECVF international conference
+on computer vision . 96279636.
+38 Laurens Van der Maaten and Geoffrey Hinton. 2008. Visualizing data using t-SNE.
+Journal of machine learning research 9, 11 2008.
+39 Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones,
+Aidan N Gomez, ukasz Kaiser, and Illia Polosukhin. 2017. Attention is all
+you need. Advances in neural information processing systems 30 2017.
+40 Ramakrishna Vedantam, C Lawrence Zitnick, and Devi Parikh. 2015. Cider:
 Consensus-based image description evaluation. In Proceedings of the IEEE confer-
-ence on computer vision and pattern recognition . 4566–4575.
-[41] Heng Wang, Chaoyi Zhang, Jianhui Yu, and Weidong Cai. 2022. Spatiality-
+ence on computer vision and pattern recognition . 45664575.
+41 Heng Wang, Chaoyi Zhang, Jianhui Yu, and Weidong Cai. 2022. Spatiality-
 guided transformer for 3d dense captioning on point clouds. arXiv preprint
-arXiv:2204.10688 (2022).
-[42] Jinyu Yang, Jiali Duan, Son Tran, Yi Xu, Sampath Chanda, Liqun Chen, Belinda
+arXiv:2204.10688 2022.
+42 Jinyu Yang, Jiali Duan, Son Tran, Yi Xu, Sampath Chanda, Liqun Chen, Belinda
 Zeng, Trishul Chilimbi, and Junzhou Huang. 2022. Vision-language pre-training
-with triple contrastive learning. In Proceedings of the IEEE/CVF Conference on
-Computer Vision and Pattern Recognition . 15671–15680.[43] Zhengyuan Yang, Songyang Zhang, Liwei Wang, and Jiebo Luo. 2021. Sat: 2d
-semantics assisted training for 3d visual grounding. In Proceedings of the IEEE/CVF
-International Conference on Computer Vision . 1856–1866.
-[44] Zhou Yu, Jun Yu, Yuhao Cui, Dacheng Tao, and Qi Tian. 2019. Deep modular co-
-attention networks for visual question answering. In Proceedings of the IEEE/CVF
-conference on computer vision and pattern recognition . 6281–6290.
-[45] Zhihao Yuan, Xu Yan, Yinghong Liao, Ruimao Zhang, Sheng Wang, Zhen Li,
+with triple contrastive learning. In Proceedings of the IEEECVF Conference on
+Computer Vision and Pattern Recognition . 1567115680.43 Zhengyuan Yang, Songyang Zhang, Liwei Wang, and Jiebo Luo. 2021. Sat: 2d
+semantics assisted training for 3d visual grounding. In Proceedings of the IEEECVF
+International Conference on Computer Vision . 18561866.
+44 Zhou Yu, Jun Yu, Yuhao Cui, Dacheng Tao, and Qi Tian. 2019. Deep modular co-
+attention networks for visual question answering. In Proceedings of the IEEECVF
+conference on computer vision and pattern recognition . 62816290.
+45 Zhihao Yuan, Xu Yan, Yinghong Liao, Ruimao Zhang, Sheng Wang, Zhen Li,
 and Shuguang Cui. 2021. Instancerefer: Cooperative holistic understanding
 for visual grounding on point clouds through instance multi-level contextual
-referring. In Proceedings of the IEEE/CVF International Conference on Computer
-Vision . 1791–1800.
-[46] Xiaohua Zhai, Xiao Wang, Basil Mustafa, Andreas Steiner, Daniel Keysers, Alexan-
+referring. In Proceedings of the IEEECVF International Conference on Computer
+Vision . 17911800.
+46 Xiaohua Zhai, Xiao Wang, Basil Mustafa, Andreas Steiner, Daniel Keysers, Alexan-
 der Kolesnikov, and Lucas Beyer. 2022. Lit: Zero-shot transfer with locked-image
-text tuning. In Proceedings of the IEEE/CVF Conference on Computer Vision and
-Pattern Recognition . 18123–18133.
-[47] Han Zhang, Jing Yu Koh, Jason Baldridge, Honglak Lee, and Yinfei Yang. 2021.
+text tuning. In Proceedings of the IEEECVF Conference on Computer Vision and
+Pattern Recognition . 1812318133.
+47 Han Zhang, Jing Yu Koh, Jason Baldridge, Honglak Lee, and Yinfei Yang. 2021.
 Cross-modal contrastive learning for text-to-image generation. In Proceedings of
-the IEEE/CVF conference on computer vision and pattern recognition . 833–842.
-[48] Lichen Zhao, Daigang Cai, Lu Sheng, and Dong Xu. 2021. 3DVG-Transformer:
+the IEEECVF conference on computer vision and pattern recognition . 833842.
+48 Lichen Zhao, Daigang Cai, Lu Sheng, and Dong Xu. 2021. 3DVG-Transformer:
 Relation modeling for visual grounding on point clouds. In Proceedings of the
-IEEE/CVF International Conference on Computer Vision . 2928–2937.
-[49] Lichen Zhao, Daigang Cai, Jing Zhang, Lu Sheng, Dong Xu, Rui Zheng, Yinjie
+IEEECVF International Conference on Computer Vision . 29282937.
+49 Lichen Zhao, Daigang Cai, Jing Zhang, Lu Sheng, Dong Xu, Rui Zheng, Yinjie
 Zhao, Lipeng Wang, and Xibo Fan. 2022. Towards Explainable 3D Grounded
 Visual Question Answering: A New Benchmark and Strong Baseline. IEEE
-Transactions on Circuits and Systems for Video Technology (2022).
-[50] Zhaohui Zheng, Ping Wang, Wei Liu, Jinze Li, Rongguang Ye, and Dongwei Ren.
+Transactions on Circuits and Systems for Video Technology 2022.
+50 Zhaohui Zheng, Ping Wang, Wei Liu, Jinze Li, Rongguang Ye, and Dongwei Ren.
 2020. Distance-IoU loss: Faster and better learning for bounding box regression. In
-Proceedings of the AAAI conference on artificial intelligence , Vol. 34. 12993–13000.
-[51] Xizhou Zhu, Weijie Su, Lewei Lu, Bin Li, Xiaogang Wang, and Jifeng Dai. 2020.
+Proceedings of the AAAI conference on artificial intelligence , Vol. 34. 1299313000.
+51 Xizhou Zhu, Weijie Su, Lewei Lu, Bin Li, Xiaogang Wang, and Jifeng Dai. 2020.
 Deformable detr: Deformable transformers for end-to-end object detection. arXiv
-preprint arXiv:2010.04159 (2020).Appendix
+preprint arXiv:2010.04159 2020.Appendix
 A OVERVIEW
 In Section B, we provide more details of the datasets used in the
 downstream tasks. In Section C, we conduct the ablation study
 in 3D question answering and show the effect of each module in
 3DVLP. In Section D, we compare 3DVLP with variant that train
 from scratch to verify the effectiveness and superiority of the pre-
-training stage. In Section F, we provide the t-SNE [ 38] visualization
+training stage. In Section F, we provide the t-SNE  38 visualization
 of proposal features in the scene from 3DVLP and variant without
 OID, OCC and OSC. In Section E, we show more qualitative results
 in 3D dense captioning task.
@@ -850,7 +850,7 @@ B DATASET DETAILS
 To benchmark the performance in the downstream tasks, we select
 different datasets in the experiments and describe their detailed
 information below.
-ScanRefer [7]. ScanRefer is a large-scale benchmark dataset de-
+ScanRefer 7. ScanRefer is a large-scale benchmark dataset de-
 signed for 3D object localization and referred object segmentation
 in real-world scenes. The dataset consists of textual descriptions
 of objects present in the scene and their corresponding 3D bound-
@@ -859,13 +859,13 @@ performance of 3D object detection and recognition in real-world
 scenarios by providing a benchmark for models that can understand
 natural language descriptions of objects and their spatial relation-
 ships. The dataset comprises a total of 51,583 descriptions of 11,046
-objects, which have been divided into train/val/test sets with 36,655,
+objects, which have been divided into trainvaltest sets with 36,655,
 9,508, and 2,068 samples, respectively. Additionally, ScanRefer cat-
 egorizes the data into two subsets: "unique" and "multiple." The
 "unique" subset contains grounding data with only a single object
 of its class in the scene, while the "multiple" subset contains data
 with more than one object of a particular class in the scene.
-Scan2Cap [11]. Scan2Cap is a dataset designed for generating
+Scan2Cap 11. Scan2Cap is a dataset designed for generating
 natural language descriptions of indoor scenes from 3D point cloud
 data. The primary objective of this dataset is to provide a bench-
 mark for models that can generate natural language descriptions
@@ -879,8 +879,8 @@ and EOS, to indicate the start and end of the description. Addi-
 tionally, Scan2Cap follows the same data division as ScanRefer,
 dividing the 36,665 and 9,508 samples into train and validation sets,
 respectively.
-ScanQA [3]. The ScanQA dataset is a benchmark dataset de-
-signed for visual question answering (VQA) in 3D scenes. Based on
+ScanQA 3. The ScanQA dataset is a benchmark dataset de-
+signed for visual question answering VQA in 3D scenes. Based on
 the ScanNet dataset, it provides high-quality 3D scanning data of in-
 door scenes with corresponding questions and answers. The dataset
 covers a wide range of object categories, making it a challenging
@@ -890,7 +890,7 @@ and 16,999 unique answers. It follows the same training, validation,
 and test set splits as in ScanRefer.Table 5: Ablation analysis in question answering. We report
 the percentage of exactly matched predictions.
 Module Question Answering
-OID OCC OSC EM@1 EM@10
+OID OCC OSC EM1 EM10
 23.23 56.66
 ! 22.58 55.94
 ! 23.80 57.88
@@ -915,14 +915,14 @@ questions.
 2
 1
 0
-(a) 3DVLP-base
+a 3DVLP-base
 4
  3
  2
  1
  0 12
 1
-0123456 (b) 3DVLP
+0123456 b 3DVLP
 Figure 7: t-SNE visualization of proposal features in the
 scene. 3DVLP-base is the variant of 3DVLP that does not in-
 clude OID, OSC and OCC modules.
@@ -940,13 +940,13 @@ stage over the proxy tasks provides a significant boost in perfor-
 mance. When comparing with 3DVLP with scratch-20, we observe
 that 3DVLP shows superiority in all metrics with the same training
 time. The training in the pre-training stage enhances the perfor-
-mance by 0.5-6% in captioning metrics and 2-4% in QA metrics.
+mance by 0.5-6 in captioning metrics and 2-4 in QA metrics.
 When comparing with scratch-full, 3DVLP achieves better perfor-
 mance with fewer training times, further verifying the effectivenessTable 6: Comparison results between 3DVLP and its variants trained from scratch. Specifically, we compare 3DVLP trained
-from scratch for 20 epochs (denoted as "scratch-20") and 3DVLP trained from scratch until full convergence (denoted as
-"scratch-full").
+from scratch for 20 epochs denoted as "scratch-20" and 3DVLP trained from scratch until full convergence denoted as
+"scratch-full".
 Dense Captioning Question Answering
-Method C@0.25 B-4@0.25 M@0.25 R@0.25 C@0.5 B-4@0.5 M@0.5 R@0.5 EM@1 EM@10
+Method C0.25 B-40.25 M0.25 R0.25 C0.5 B-40.5 M0.5 R0.5 EM1 EM10
 scratch-20 59.71 38.89 35.55 59.57 41.38 26.70 32.46 48.01 21.51 53.99
 scratch-full 64.14 38.59 35.63 58.94 48.81 30.08 33.29 50.28 22.18 54.04
 3DVLP 66.63 40.85 36.12 61.03 54.41 34.10 34.34 54.28 24.03 57.91
@@ -979,7 +979,7 @@ E MORE QUALITATIVE RESULTS
 We provide more qualitative results in dense captioning in Fig 8.
 F T-SNE VISUALIZATION OF PROPOSAL
 FEATURES
-We present a t-SNE [ 38] visualization of proposal features in the
+We present a t-SNE  38 visualization of proposal features in the
 scene, as shown in Fig. 7. We use a threshold near the real objectcenter and filter out the proposals representing the background.
 Furthermore, we assign labels to the proposals with the nearest real
 object id. We compare the performance of 3DVLP with its variant
